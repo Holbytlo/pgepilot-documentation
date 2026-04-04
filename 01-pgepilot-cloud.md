@@ -216,7 +216,7 @@ New plant `VA_SB` (ID 202) registered as a SmartBox pull connector:
 
 ## Known Issues
 
-- **GoodweSems OpenAPI token refresh broken** -- Task 29 Collect only collects SolaX + SmartBox (1/32 GoodWe plants working). GoodWe RT collect failing with error code 100002 (token expired). Pre-existing issue with INI file token storage, not introduced by 2026-04-04 changes.
+- ~~GoodweSems OpenAPI token refresh broken~~ **FIXED** (2026-04-04) -- In-memory token cache + auto-retry on 100002 (commit `248351d`). All 32 plants now collected.
 - GoodWe cache methods (4 new) are local edits in worker1, **not committed to git** (session ended before deploy on 2026-04-04)
 - GoodweSemsWeb credentials updated: old account [REDACTED] was deactivated (code 100029), new account [REDACTED] is working for both CrossLogin (web) and OpenAPI (GetToken)
 - Sync crons still in service container crontab instead of JobManager scheduler

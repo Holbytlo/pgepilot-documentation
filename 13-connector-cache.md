@@ -252,5 +252,5 @@ Connector configuration is managed in the servicedesk admin panel:
 - 4 GoodweSems cache methods exist locally but are **NOT deployed or in git** (H1 in roadmap)
 - GoodweSemsWeb.php has **no ConnectorBudgetTrait** at all -- 4 original + 5 new methods (9 total) call API without cache or budget checks (H3 in roadmap)
 - SolaX backfill disabled (backfill_enabled=0) as safety measure -- re-enable when budget logic proven reliable (H9 in roadmap)
-- **GoodweSems OpenAPI token refresh broken** -- Task 29 Collect only collects SolaX + SmartBox (1/32 GoodWe plants working). Error 100002 (token expired). Pre-existing issue with INI file token storage (H10 in roadmap).
+- ~~GoodweSems OpenAPI token refresh broken~~ **FIXED** (2026-04-04) -- In-memory token cache + auto-retry on 100002. Commit `248351d`. All 17 GoodWe + 14 SolaX + 1 SmartBox now collected (32/32).
 - GoodweSemsWeb credentials were updated (old account deactivated, code 100029). New account [REDACTED] working for both CrossLogin and OpenAPI.

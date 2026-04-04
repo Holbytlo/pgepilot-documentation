@@ -75,7 +75,7 @@ Items left incomplete from the last development session. Start here before new w
 | H7 | **SB1 NTP warning** | LOW | "NTP not initialized, using system time" -- not critical but should be resolved. |
 | H8 | **Git push SB1 changes** | PENDING | rpc_client_config.yaml, models.py, comm_controller_config.yaml, new systemd service -- need push to Holbytlo/sb branch devva. |
 | H9 | **SolaX backfill re-enable** | WAITING | Set connector_config backfill_enabled=1 for SOLAX_CLOUD after budget logic is proven reliable. |
-| H10 | **GoodweSems OpenAPI token refresh broken** | BLOCKING RT | Task 29 Collect only collects SolaX + SmartBox (1/32 GoodWe plants). GoodWe RT collect failing with error 100002 (token expired). Pre-existing issue with INI file token storage. Not introduced by 2026-04-04 changes. |
+| ~~H10~~ | ~~GoodweSems OpenAPI token refresh broken~~ | **DONE** (2026-04-04) | Fixed: in-memory token cache + auto-retry on 100002. Root cause: INI file race condition between workers + no token refresh on expired response. Commit `248351d`. |
 
 ---
 
