@@ -23,6 +23,7 @@
 | 10 | [10-security.md](10-security.md) | Critical/medium risks, hardening plan, RBAC status |
 | 11 | [11-email-api.md](11-email-api.md) | POST /sendEmail: profiles, SMTP config, code examples |
 | 12 | [12-forecasting.md](12-forecasting.md) | PV forecast, load forecast, weather, adaptive correction, planned Open-Meteo physical model |
+| 13 | [13-connector-cache.md](13-connector-cache.md) | Connector self-governance: cache strategy, budget/rate limits, enable flags, ConnectorBudgetTrait |
 | -- | [AUDIT_PROCEDURE.md](AUDIT_PROCEDURE.md) | Step-by-step server audit commands for verifying docs against reality |
 
 ## How to Use

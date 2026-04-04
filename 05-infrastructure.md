@@ -183,25 +183,113 @@ MariaDB running on host (not in Docker). Connection: `pgepilot.cz:3306`, user: `
 ssh root@pgepilot.cz "docker exec pgepilot_service bash -c 'cd /var/www/html && git pull'"
 ```
 
-### Worker Container (docker cp -- no functional git)
+### Worker Containers (docker cp -- no functional git)
+
+**IMPORTANT**: Workers have TWO code paths: `src/` and `wsrc/`. BOTH must match. Always deploy to ALL workers.
+
 ```bash
-ssh root@pgepilot.cz "docker cp pgepilot_service:/var/www/html/src/File.php /tmp/f && \
-  docker cp /tmp/f pgepilot_worker1:/var/www/html/src/File.php"
+# Deploy a single file to ALL workers (service + worker1 + worker2 + worker3)
+FILE="src/Specific/Connectors/GoodweSems.php"
+ssh root@pgepilot.cz "
+  for c in pgepilot_service pgepilot_worker1 pgepilot_worker2 pgepilot_worker3; do
+    docker cp pgepilot_service:/var/www/html/$FILE /tmp/deploy_file
+    docker cp /tmp/deploy_file \$c:/var/www/html/$FILE
+    docker cp /tmp/deploy_file \$c:/var/www/html/w${FILE}  # wsrc path
+  done
+"
 ```
 
 ### Servicedesk/PGE App (docker cp + nsenter build)
+
+`docker exec` does NOT work for servicedesk (OCI error). Must use `nsenter`.
+
 ```bash
-docker cp /tmp/Component.vue pgepilot_servicedesk:/home/app2/pge-app/src/views/...
+# 1. Copy file to container
+docker cp /tmp/Component.vue pgepilot_servicedesk:/home/app2/pge-app/src/views/Component.vue
+
+# 2. Build inside container via nsenter
 SD_PID=$(docker inspect pgepilot_servicedesk --format '{{.State.Pid}}')
 nsenter -t $SD_PID -m -u -i -n -p -- bash -c 'cd /home/app2/pge-app && npm run build'
+
+# 3. Verify
+curl -s -o /dev/null -w '%{http_code}' http://localhost:3060
 ```
 
 ### SmartBox (git pull on SB1)
 ```bash
+# Connect via VPS jump
 ssh -J limited@ra-energity.cz -p 20002 root@127.0.0.1
+
+# Deploy
 cd /opt/energity/sb && git pull
 systemctl restart energity-device-controller
+systemctl restart energity-comm-controller
+
+# Verify
+systemctl status energity-*
 ```
+
+### Post-Deploy Verification
+
+After any deploy, verify:
+```bash
+# Check containers are running
+docker ps --format '{{.Names}}: {{.Status}}'
+
+# Check PM2 processes
+docker exec pgepilot_jobmanager pm2 list
+docker exec pgepilot_servicedesk pm2 list
+
+# Check API health
+curl -s http://localhost:8400/api/v2/health
+
+# Check recent tasks
+mysql -u root -p[REDACTED] pgep_tasks -e "SELECT id, name, active FROM task_definitions WHERE active=1;"
+```
+
+---
+
+## Scheduled Jobs Map (verified 2026-04-04)
+
+All scheduled execution across the entire PgePilot ecosystem in one place.
+
+### Host Crontab (pgepilot.cz)
+
+| Schedule | Script | Purpose |
+|----------|--------|---------|
+| `15 2 * * *` | mysql-backup.sh | Backup (only pgepilot DB!) |
+| `*/5 * * * *` | docker_healthcheck.sh | Docker container health monitoring |
+| `25 3 * * *` | api_usage cleanup | DELETE api_usage rows > 30 days |
+
+### Service Container Crontab
+
+| Schedule | Script | Purpose |
+|----------|--------|---------|
+| `3 0 1 4 *` | enable_solax.php | One-time SolaX API re-enable (April 2026) |
+
+> **Note**: Sync crons (sync_realtime, sync_history, etc.) have been migrated OUT of crontab into task_definitions 20-22.
+
+### JobManager Scheduler (setInterval 60s)
+
+| Time | Task | Target |
+|------|------|--------|
+| Every hour :17 | PV Forecast | `POST /api/v2/tasks/run-pv-forecast` |
+| Every hour :23 | Load Forecast | `POST /api/v2/tasks/run-load-forecast` |
+| Daily 1:05 | Forecast Correction | `POST /api/v2/tasks/run-forecast-correction` |
+
+### Task System (JobManager → Service → Workers, every 3s)
+
+| ID | Name | Active | Interval |
+|----|------|--------|----------|
+| 15 | Plant Health Check | Yes | Repeating |
+| 17 | Control Relays | Yes | Repeating |
+| 18 | Historical Data Backfill | Yes | Repeating |
+| 19 | Energy Data Backfill (GoodWe) | Yes | Repeating |
+| 20 | Sync Realtime | **No** | Migrated from cron, needs activation |
+| 21 | Sync History | **No** | Migrated from cron, needs activation |
+| 22 | Record Realtime to History | **No** | Migrated from cron, needs activation |
+| 23 | Compute Energy 15m | Yes | Every 15 min |
+| 29 | Collect Realtime Data | Yes | Repeating |
 
 ---
 
