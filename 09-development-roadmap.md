@@ -1,0 +1,153 @@
+# 09 -- Development Roadmap
+
+> Current production state, completed milestones, and prioritized work items.
+> Last updated: 2026-04-04
+
+---
+
+## Production State (2026-04-04)
+
+| Component | Status | Details |
+|-----------|--------|---------|
+| Legacy PgePilot | Production | 23 plants (7 GoodWe, 15 SolaX, 1 SB), health check 5min, relay control |
+| pge_control DB | Production | 18+ tables, 23 CP, 26 devices, 40 machines, realtime sync |
+| pge_data DB | Production | 81 tables (power_1m, energy_15m, forecast), sync crons + scheduler |
+| API v2 | Production | 36+ endpoints, JWT auth, forecast API, task API |
+| PGE App (web) | Production | Dashboard, CPDetail, Charts (aggregation), Alerts, Domains, Users, Forecast |
+| Forecast system | Production | PV (forecast.solar Pro), load (profiling), weather (Open-Meteo), adaptive correction |
+| JobManager scheduler | Production | 3 scheduled tasks (PV, load, correction) |
+| SmartBox SB1 | Production (monitoring) | 4 microservices, Modbus polling, RPC working, 2139 rpc_kv records |
+| SmartBox TOU | In progress | Spec ready, not yet implemented on real SB |
+| sb-manager | Production (unstable) | 155 restarts in 4 days |
+| Email API | Production | 5 profiles (servis, automat, technika, obchod, info) |
+| Connector self-governance | Production | Budget trait, cache, enabled flags |
+
+---
+
+## Recently Completed (2026-03-28 -- 2026-04-04)
+
+| Item | Date | Detail |
+|------|------|--------|
+| pgepilot_data migration | 03-28 | Moved from pgedata.cz to local pgepilot.cz |
+| SolaX SoC fix | 03-28 | battery_capacity set for all machines |
+| VA 2-year backfill | 03-28 | Historical data 2024-03 to 2026-02 |
+| PV forecast | 03-29 | forecast.solar Professional, multi-string, 6 days, 15min |
+| Load forecast | 03-29 | Weekly profile, holidays, seasonal/temperature correction |
+| Adaptive correction | 03-29 | EMA alpha=0.15, daily comparison |
+| Forecast UI | 03-29 | /predikce page (admin): PV + load + balance + weather |
+| Chart aggregation | 03-29 | Year: months/weeks, Month: days/weeks, Week: days/hours |
+| JobManager scheduler | 03-29 | Forecast tasks in scheduler instead of crontab |
+| Email profiles | 03-29 | 5 profiles configured |
+| Collect task (29) enabled | 04-04 | GoodWe + SolaX data flowing again |
+| SolaX API fixed | 04-04 | Reset at midnight, monitor email sent |
+| SolaX HC enabled | 04-04 | 15 plants, reads from cache |
+| HC quiet hours fix | 04-04 | Night window 18:00-07:00, severity=2 for non-fault |
+| compute_energy_15m (task 23) | 04-04 | Fixed column names, tested (7721 buckets), enabled |
+| SmartBox SB1 fixed | 04-04 | Config pointed to production, comm controller running |
+| Connector self-governance | 04-04 | ConnectorBudgetTrait, cache, enabled flags per connector |
+| Docker-compose fix | 04-04 | servicedesk added to nginx-proxy-manager network |
+| api_usage retention | 04-04 | Cron deletes rows older than 30 days |
+
+---
+
+## Priority 1 -- Complete (1-2 weeks)
+
+| # | Task | Detail | Effort |
+|---|------|--------|--------|
+| 1.1 | Installation page | Just a placeholder now, needs form/wizard | Medium |
+| 1.2 | Settings page | Just a placeholder, needs profile + password change | Medium |
+| 1.3 | Password change | Missing endpoint + UI | Small |
+| 1.4 | Sync crons to JobManager | Move sync_realtime/history/record/compute from crontab to scheduler | Medium |
+| 1.5 | PV forecast for all CPs | Add pv_forecast_config for more plants (currently only VA + Kder Veltrusy) | Medium |
+| 1.6 | SolaX backfill | Nov 2025 - Mar 2026 not completed (was killed) | Medium |
+| 1.7 | GoodWe backfill | Complete history for all GW plants | Medium |
+
+---
+
+## Priority 2 -- New Features (2-4 weeks)
+
+| # | Task | Detail | Effort |
+|---|------|--------|--------|
+| 2.1 | Command execution | cp_commands -> connector poll -> device. Backend exists, needs execution | Large |
+| 2.2 | SB TOU engine | sb.* API on real SB1 (spec: zadani_api_commandu_sb_plant_v0_1.docx) | Large |
+| 2.3 | Mobile app | React Native, shares API v2 (spec: Tvorba mob app/) | Large |
+| 2.4 | SPOT optimization | Use OTE prices for charge/discharge planning | Medium |
+| 2.5 | BOILER/EVSE/POOL in TOU | Extend TOU engine to more device types | Medium |
+| 2.6 | Forecast in Charts | Overlay forecast on historical charts (not just separate /predikce page) | Medium |
+| 2.7 | Docker compose | Restructure Docker infrastructure | Medium |
+
+---
+
+## Priority 3 -- Hardening (ongoing)
+
+| # | Task | Detail | Effort |
+|---|------|--------|--------|
+| 3.1 | DB password | Change from hardcoded to env var | Small |
+| 3.2 | JWT secrets | Change defaults to random | Small |
+| 3.3 | SMTP password | Move from code to env var | Small |
+| 3.4 | db.pgepilot.cz | Block external access on port 3306 | Small |
+| 3.5 | Backup expansion | Add pge_control, pge_data, pgep_tasks to backup | Small |
+| 3.6 | Tailwind CDN | npm install tailwindcss | Small |
+| 3.7 | Auth middleware | Enable on all write endpoints | Medium |
+| 3.8 | Dead proxy entries | Remove sicak, calc, nab, taskmanager from NPM | Small |
+| 3.9 | SB1 failing services | Stop sb-test-3000/3001 | Small |
+| 3.10 | sb-manager stability | Diagnose 155 restarts in 4 days | Medium |
+| 3.11 | Cron monitoring | Alert when sync fails | Medium |
+| 3.12 | plant_config | Fill in for all plants (many missing) | Small |
+
+---
+
+## Priority 4 -- Future
+
+| # | Task | Detail |
+|---|------|--------|
+| 4.1 | Energy communities | EANd/EANo sharing, export_alloc_15m |
+| 4.2 | SB plugin framework | sb-core + drivers as plugins, OTA updater |
+| 4.3 | Canary rollout | Gradual update rollout to SB devices |
+| 4.4 | Virtual battery | Battery aggregation across CPs |
+| 4.5 | HVAC / heat pumps | Additional device type |
+
+---
+
+## Recommended Work Order
+
+```
+Week 1:  1.4 (Sync to scheduler) + 1.5 (PV forecast for more CPs) + 3.1-3.4 (security)
+Week 2:  1.1 (Installation page) + 1.2 (Settings) + 1.3 (password change) + 3.5 (backup)
+Week 3:  1.6 (SolaX backfill) + 1.7 (GW backfill) + 2.7 (Docker compose)
+Week 4+: 2.1 (Command execution) + 2.2 (SB TOU engine)
+```
+
+---
+
+## Active Plants
+
+### GoodWe (17 total, 15 with health check)
+
+| Code | Storage | Inverter SN | Notes |
+|------|---------|-------------|-------|
+| BD41 | bd41 | 9010KETU227W2085 | |
+| BETO1 | beto1 | (missing SN) | Energy backfill skipped |
+| BPB1 | bpb1 | 9010KETU219W0731 | |
+| CRZ1 | crz1 | 9010KETU21CW3722 | |
+| FVE_Bol | fve_bol | 9015KEUB251L0044 | |
+| FVE_CERN | fve_cern | 5025KETT254S0053 | |
+| FVE_DF55 | fve_df55 | 5010KETU231W0996 | |
+| FVE_TRC | fve_trc | 5010KETU232W9097 | |
+| FVE_ZM1 | fve_zm1 | 5010KETU22BW2647 | |
+| KCE1 | kce1 | 9010KETU227W2082 | |
+| Kost_ou | kost_ou | 9020KETT235W0807 | |
+| LSS1 | lss1 | 5010KETU232W6822 | |
+| Mik_Chl | mik_chl | 5010KETU22BW2609 | |
+| RYB_VIN | ryb_vin | 9010KETU22BW1789 | |
+| RYBCap | rybcap | 9010KETU224W4101 | |
+| SVP1 | svp1 | (missing SN) | Energy backfill skipped |
+| VA | va | 9025KETT244L0024 | 2-year backfill done |
+
+### SolaX (15 plants)
+
+All SolaX plants have health check enabled, reading from cache (0 extra API calls). Backfill disabled for SolaX (API limit protection).
+
+### SmartBox (1 plant)
+
+- SBX_DEYE25 -- SB1 at Rozdrojovice, GoodWe ET+ inverter via Modbus TCP
