@@ -50,6 +50,24 @@
 
 ---
 
+## Unfinished / Handoff Items (from 2026-04-04 session)
+
+Items left incomplete from the last development session. Start here before new work.
+
+| # | Item | Status | Detail |
+|---|------|--------|--------|
+| H1 | **Deploy GoodweSems.php cache** | NOT DEPLOYED | 4 new cache methods (GetDeviceAttribute, getInverterEnergyUsedDetail, GetInverterPowerV1, GetPlantPower) exist in /tmp/GoodweSems.php on local Mac. Need docker cp to all 4 containers (service + worker1/2/3), both src/ and wsrc/ paths. Then git commit + push. |
+| H2 | **Deploy SolaxCloud.php getMpptInfo cache** | NOT DEPLOYED | Local file /tmp/SolaxCloud.php. Same deploy procedure. |
+| H3 | **GoodweSemsWeb.php needs ConnectorBudgetTrait** | NOT STARTED | Separate class for web scraping GoodWe history. Has 4 read methods without cache or budget checks. |
+| H4 | **Create tpl_power_bf table** | BLOCKING | Task 18 (Historical Data Backfill) is enabled but CREATE TABLE LIKE fails because template table doesn't exist. |
+| H5 | **Activate task_definitions 20-22** | READY | Sync tasks migrated from crontab but currently disabled. Need to verify they work, then enable. |
+| H6 | **SB1 poll warning** | LOW | Communication controller logs poll as "failed" (ok=None). Either server adds `ok: true` to smartboxPoll response, or fix comm controller parsing. |
+| H7 | **SB1 NTP warning** | LOW | "NTP not initialized, using system time" -- not critical but should be resolved. |
+| H8 | **Git push SB1 changes** | PENDING | rpc_client_config.yaml, models.py, comm_controller_config.yaml, new systemd service -- need push to Holbytlo/sb branch devva. |
+| H9 | **SolaX backfill re-enable** | WAITING | Set connector_config backfill_enabled=1 for SOLAX_CLOUD after budget logic is proven reliable. |
+
+---
+
 ## Priority 1 -- Complete (1-2 weeks)
 
 | # | Task | Detail | Effort |
