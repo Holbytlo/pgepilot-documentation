@@ -31,17 +31,20 @@ Servers 3 and 4 are part of the PGE ERP ecosystem (separate documentation).
 | SSH | `ssh root@pgepilot.cz` (ed25519 key) |
 | Firewall | iptables: SSH to containers whitelisted for specific IPs, fail2ban on port 22 |
 
-### Docker Containers (7)
+### Docker Containers (8 running, verified 2026-04-04)
 
-| Container | Ports (host:container) | SSH Port | Tech | Purpose |
-|-----------|----------------------|----------|------|---------|
-| pgepilot_service | 8400->80 | 2214 | PHP 8.1, Slim4 | API backend, TaskManager |
-| pgepilot_worker1 | 6001->80 | 2261 | PHP 8.1 | Task execution |
-| pgepilot_jobmanager | 5000, 5001 | 2205 | Node.js v20, PM2 | Job orchestrator + SB sim |
+| Container | Ports (host) | SSH Port | Tech | Purpose |
+|-----------|-------------|----------|------|---------|
+| pgepilot_service | 8400 | 2214 | PHP 8.1, Slim4 | API backend, TaskManager |
+| pgepilot_worker1 | 6001 | 2261 | PHP 8.1 | Task execution |
+| pgepilot_worker2 | 6002 | 2262 | PHP 8.1 | Task execution (added) |
+| pgepilot_worker3 | 6003 | 2263 | PHP 8.1 | Task execution (added) |
+| pgepilot_jobmanager | 5000-5001 | 2205 | Node.js v20, PM2 | Job orchestrator + SB sim |
 | pgepilot_servicedesk | 3050, 3060 | 2206 | Vue3, Node.js | Frontend + PGE App |
 | pgepilot_auth_srv | 4000 | -- | Node.js, JWT | Authentication |
-| pgepilot_beapp | 8001->80 | 2201 | PHP 8.1 | LEGACY (do not use) |
 | nginx-proxy-manager | 80, 81, 443 | -- | nginx | Reverse proxy, SSL |
+
+> `pgepilot_beapp` (legacy) exists as image but is NOT running.
 
 ### Container Access
 
@@ -99,16 +102,29 @@ See [02-smartbox-sbc.md](02-smartbox-sbc.md) for full details.
 
 MariaDB running on host (not in Docker). Connection: `pgepilot.cz:3306`, user: `root`, password: `[REDACTED]`.
 
-| Database | Purpose | Key Tables | Size |
-|----------|---------|------------|------|
-| **pgepilot** | Legacy plants, machines, config | plants(36), machines(39), relay_groups, event_log, plant_realtime_status | ~6 GB (plant_state_history ~5 GB) |
-| **pge_control** | New entity model | cp_collection_points(23), cp_devices(26), cp_machines(40), cp_commands, realtime_state(23), cp_users(19) | Small |
-| **pge_data** | New time series + forecast | {code}_power_1m, {code}_energy_15m, pv_forecast, load_forecast, weather_forecast (81 tables) | Growing |
-| **pgepilot_data** | Legacy time series (migrated from pgedata.cz 2026-03-28) | {code}_power_5m, {code}_energy_5m (55 tables) | Medium |
-| **pgep_tasks** | Task management (shared) | task_definitions, tasks, tasks_archive (~1.6M rows) | Medium |
-| **pgepilot_dashboard** | Notifications | notification_outbox | Small |
-| **pgep_cache** | Cache | -- | Small |
-| **pgep_users** | Users | -- | Small |
+| Database | Purpose | Key Tables | Size (verified 2026-04-04) |
+|----------|---------|------------|---------------------------|
+| **pgepilot** | Legacy plants, machines, config | plants(36), machines(39), relay_groups, event_log, plant_realtime_status | **7166 MB** |
+| **pgep_tasks** | Task management (shared) | task_definitions(15), tasks, tasks_archive | **4726 MB** |
+| **pgepilot_dashboard** | Notifications | notification_outbox | **2549 MB** |
+| **pgepilot_data** | Legacy time series (migrated from pgedata.cz 2026-03-28) | {code}_power_5m, {code}_energy_5m (55 tables) | **732 MB** |
+| **pge_data** | New time series + forecast | {code}_power_1m, {code}_energy_15m, pv_forecast, load_forecast (81 tables) | **480 MB** |
+| **pge_control** | New entity model (27 tables) | cp_collection_points(35), cp_devices(26), cp_machines(40), realtime_state(23), cp_users(32) | **90 MB** |
+| **pgep_cache** | Cache | -- | <1 MB |
+| **pgep_users** | Users | -- | <1 MB |
+
+### Undocumented / Legacy Databases
+
+> **Action needed**: Ask whether these can be removed. Do NOT delete without confirmation.
+
+| Database | Purpose | Size |
+|----------|---------|------|
+| pge_calc | Unknown (legacy?) | <1 MB |
+| pgep_OPS1 | Unknown (legacy?) | <1 MB |
+| pgep_udb_0 | Unknown (legacy?) | <1 MB |
+| main | Unknown | <1 MB |
+| pgepilot_bkp_20241005 | Backup from Oct 2024 | <1 MB |
+| backup_pgep_va_20240921_154004 | VA backup from Sep 2024 | <1 MB |
 
 ### Backup
 

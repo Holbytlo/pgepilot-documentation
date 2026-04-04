@@ -75,7 +75,8 @@ GIT_SSH_COMMAND="ssh -i /home/limited/.ssh/githolbytlo -o IdentitiesOnly=yes" gi
 |----------|-------|
 | Hardware | Raspberry Pi 4 Model B Rev 1.5 |
 | OS | Debian 13 (trixie), aarch64 |
-| RAM | 1.8 GB (~400 MB available) |
+| RAM | 1.8 GB (~123 MB free, ~815 MB available with cache) |
+| Swap | 1.8 GB (251 MB used, verified 2026-04-04) |
 | Disk | 59 GB SD card (48 GB free) |
 | WiFi IP | 192.168.0.51 |
 | Python | 3.13.5 (venv) |
@@ -107,6 +108,8 @@ SB1 (192.168.0.51)                 VPS (195.201.19.103)
 ```
 
 **Port schema for multiple SBs**: `base = 20000 + (N-1) * 10`, offsets: +0=nginx, +2=ssh, +3=config, +4=api, +5=ops, +9=health
+
+> **Note (2026-04-04)**: Ports 20050-20055 are active on VPS -- this is a test SmartBox at a customer site. Not yet production, will be resolved gradually. Ask about current status before working on it.
 
 ### Services on SB1 (all systemd, root)
 
@@ -164,8 +167,9 @@ base_device.py (ABC)
   |           +-- relay.py (relay driver)
 ```
 
-**Active device configuration** (SB1):
+**Active device configuration** (SB1, verified 2026-04-04):
 ```yaml
+# Device 1: GoodWe inverter (ENABLED)
 inverter:
   driver: GoodWeInverterDriver
   protocol: Modbus TCP
@@ -179,6 +183,15 @@ inverter:
     - read_battery_health (60s)    # BMS limits, SoH
     - read_temperature_data (60s)  # Air, module, heatsink
     - read_status_data (60s)       # Warnings, errors
+
+# Device 2: GPIO Relay (DISABLED)
+relay:
+  driver: RelayDriver
+  gpio_pin: 17
+  active_high: true
+  enabled: false
+
+# Device 3: inverter_test_static (legacy test, DISABLED)
 ```
 
 ### 2. Local Database (Port 5011)

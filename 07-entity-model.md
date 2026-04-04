@@ -33,18 +33,30 @@ Control Domain (portfolio/tenant, e.g. "Energity demo", "Obec Citoliby")
         +-- Binding (routing: Control Point <-> Connector, with transform and priority)
 ```
 
-### Production State (2026-04-04)
+### Production State (verified from live DB, 2026-04-04)
 
 | Table | Count |
 |-------|-------|
-| cp_control_domains | 20 |
-| cp_collection_points | 23 |
+| cp_control_domains | **32** |
+| cp_collection_points | **35** |
 | cp_devices | 26 |
 | cp_machines | 40 |
-| cp_connectors | 26 |
-| cp_users | 19 |
+| cp_connectors | **39** |
+| cp_users | **32** |
+| cp_user_grants | 31 |
 | realtime_state | 23 |
 | pv_forecast_config | 2 enabled |
+| alert_log | 116 |
+| api_response_cache | 2166 |
+| connector_cache_config | 18 |
+| connector_config | 7 |
+| cp_automation_rules | 31 |
+| cp_state_history | 1342 |
+| data_column_meta | 20 |
+| data_source_registry | 39 |
+| sb_schema_meta | 2 |
+
+Total: **27 tables** in pge_control.
 
 ### Tree Rules
 

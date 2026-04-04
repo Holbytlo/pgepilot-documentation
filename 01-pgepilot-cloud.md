@@ -14,8 +14,8 @@ PgePilot is a cloud-based monitoring platform that collects data from PV inverte
 | URL | pgepilot.cz |
 | IP | 88.99.187.9 |
 | Provider | Hetzner (ARM64) |
-| Active plants | 23 (7 GoodWe, 15 SolaX, 1 SmartBox) |
-| Docker containers | 7 |
+| Active plants | 35 collection points (GoodWe, SolaX, SmartBox) |
+| Docker containers | 8 (verified 2026-04-04) |
 | Databases | 8 (see [05-infrastructure.md](05-infrastructure.md)) |
 | Primary API | `/api/v2/*` on port 8400 |
 | Frontend | app.pgepilot.cz (Vue3, port 3060) |
@@ -24,15 +24,19 @@ PgePilot is a cloud-based monitoring platform that collects data from PV inverte
 
 ## Docker Containers
 
-| Container | Port | Tech | Purpose | Status |
-|-----------|------|------|---------|--------|
-| **pgepilot_service** | 8400 | PHP 8.1, Slim4 | API backend, TaskManager, task generation | Active |
-| **pgepilot_worker1** | 6001 | PHP 8.1 | Executes tasks (health check, backfill, relay control) | Active |
-| **pgepilot_jobmanager** | 5000 | Node.js v20, PM2 | Job orchestrator + scheduler (forecast tasks) | Active |
-| **pgepilot_servicedesk** | 3050, 3060 | Vue3, Node.js | Frontend: servicedesk (:3050) + PGE App (:3060) | Active |
-| **pgepilot_auth_srv** | 4000 | Node.js, JWT | Authentication (login, token validation) | Active |
-| **pgepilot_beapp** | 8001 | PHP 8.1 | LEGACY -- do not use | Legacy |
-| **nginx-proxy-manager** | 80, 443, 81 | nginx | Reverse proxy, SSL, Let's Encrypt | Active |
+| Container | Port | SSH Port | Tech | Purpose | Status |
+|-----------|------|----------|------|---------|--------|
+| **pgepilot_service** | 8400 | 2214 | PHP 8.1, Slim4 | API backend, TaskManager, task generation | Active |
+| **pgepilot_worker1** | 6001 | 2261 | PHP 8.1 | Executes tasks (health check, backfill, relay) | Active |
+| **pgepilot_worker2** | 6002 | 2262 | PHP 8.1 | Additional task worker | Active |
+| **pgepilot_worker3** | 6003 | 2263 | PHP 8.1 | Additional task worker | Active |
+| **pgepilot_jobmanager** | 5000-5001 | 2205 | Node.js v20, PM2 | Job orchestrator + scheduler (forecast tasks) | Active |
+| **pgepilot_servicedesk** | 3050, 3060 | 2206 | Vue3, Node.js | Frontend: servicedesk (:3050) + PGE App (:3060) | Active |
+| **pgepilot_auth_srv** | 4000 | -- | Node.js, JWT | Authentication (login, token validation) | Active |
+| **nginx-proxy-manager** | 80, 443, 81 | -- | nginx | Reverse proxy, SSL, Let's Encrypt | Active |
+
+> **Note**: `pgepilot_beapp` (legacy PHP backend) is NOT running. It exists as a Docker image but is not started.
+> Workers 2 and 3 were added to distribute task execution load.
 
 ---
 
@@ -48,21 +52,26 @@ JobManager --> POST /task to Worker1
 Worker1 --> calls GoodWe/SolaX API --> stores in DB
 ```
 
-### Active Task Definitions
+### Task Definitions (verified 2026-04-04)
 
-| ID | Name | Function | Interval | Notes |
-|----|------|----------|----------|-------|
-| 15 | Plant Health Check | checkPlantHealth | 5 min | 32 plants (17 GW + 15 SolaX), reads from cache |
-| 17 | Control Relays | controlRelays | 5 min | Per-plant relay strategy |
-| 23 | Compute Energy 15m | computeEnergy15m | 15 min | Aggregates power_rt to energy_15m |
-| 29 | Collect Realtime Data | collectRealtimeData | per cycle | GW + SolaX, fills cache + realtime_state + power_rt |
+| ID | Name | Active | Notes |
+|----|------|--------|-------|
+| 15 | Plant Health Check | **Yes** | All plants, reads from cache |
+| 17 | Control Relays | **Yes** | Per-plant relay strategy |
+| 18 | Historical Data Backfill | **Yes** | Re-enabled |
+| 19 | Energy Data Backfill (GoodWe kWh) | **Yes** | Re-enabled |
+| 20 | Sync Realtime | No | Migrated from crontab, currently disabled |
+| 21 | Sync History | No | Migrated from crontab, currently disabled |
+| 22 | Record Realtime to History | No | Migrated from crontab, currently disabled |
+| 23 | Compute Energy 15m | **Yes** | Aggregates power_rt to energy_15m |
+| 24 | PV Forecast (forecast.solar) | No | Runs via JobManager scheduler instead |
+| 25 | Load Forecast | No | Runs via JobManager scheduler instead |
+| 26 | PV Forecast OpenMeteo | No | Alternative forecast source |
+| 27 | Forecast Correction | No | Runs via JobManager scheduler instead |
+| 28 | Task Cleanup | No | Maintenance task |
+| 29 | Collect Realtime Data | **Yes** | GW + SolaX, fills cache + realtime_state + power_rt |
 
-### Disabled Tasks
-
-| ID | Name | Why |
-|----|------|-----|
-| 18 | Historical Data Backfill | `tpl_power_bf` table missing -- needs CREATE TABLE |
-| 19 | Energy Data Backfill | Disabled during debugging, can be re-enabled (GoodWe only) |
+> **Note on sync migration**: Sync crons (sync_realtime, sync_history, record_realtime_to_history) have been migrated from the service container crontab to task_definitions (IDs 20-22). The container crontab no longer contains sync entries. Forecast tasks (24-27) exist as definitions but actual scheduling is handled by the JobManager scheduler.
 
 ---
 
@@ -114,16 +123,21 @@ curl -X POST http://pgepilot_jobmanager:5000/run_scheduled_task -d '{"name":"pv_
 
 ## Data Synchronization
 
-Sync crons run inside the `pgepilot_service` container crontab:
+### Sync mechanism (verified 2026-04-04)
 
-| Cron | Script | Interval | Purpose |
-|------|--------|----------|---------|
-| `* * * * *` | sync_realtime.php | 1 min | Legacy plants -> realtime_state (pge_control) |
-| `*/5 * * * *` | sync_history.php | 5 min | Legacy history -> pge_data time series |
-| `* * * * *` | record_realtime_to_history.php | 1 min | Realtime snapshot -> power_rt tables |
-| `*/15 * * * *` | compute_energy_15m.php | 15 min | Aggregate power_rt -> energy_15m |
+Sync has been **migrated from container crontab to task_definitions** (IDs 20-22). The service container crontab no longer contains sync entries.
 
-**Note**: Plan is to migrate all sync crons into the JobManager scheduler (Priority 1.4 in roadmap).
+| Task ID | Name | Previously | Current mechanism |
+|---------|------|------------|-------------------|
+| 20 | Sync Realtime | `sync_realtime.php` (cron 1min) | task_definition (currently disabled) |
+| 21 | Sync History | `sync_history.php` (cron 5min) | task_definition (currently disabled) |
+| 22 | Record Realtime to History | `record_realtime_to_history.php` (cron 1min) | task_definition (currently disabled) |
+| 23 | Compute Energy 15m | `compute_energy_15m.php` (cron 15min) | task_definition (**active**) |
+
+The host crontab still runs:
+- `mysql-backup.sh` (02:15 daily)
+- `docker_healthcheck.sh` (every 5 min)
+- `api_usage` cleanup (03:25 daily, DELETE > 30 days)
 
 ---
 

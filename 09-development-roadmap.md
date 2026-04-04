@@ -9,8 +9,8 @@
 
 | Component | Status | Details |
 |-----------|--------|---------|
-| Legacy PgePilot | Production | 23 plants (7 GoodWe, 15 SolaX, 1 SB), health check 5min, relay control |
-| pge_control DB | Production | 18+ tables, 23 CP, 26 devices, 40 machines, realtime sync |
+| Legacy PgePilot | Production | 35 collection points (GoodWe, SolaX, SmartBox), health check, relay control |
+| pge_control DB | Production | 27 tables, 35 CP, 26 devices, 40 machines, 39 connectors, realtime sync |
 | pge_data DB | Production | 81 tables (power_1m, energy_15m, forecast), sync crons + scheduler |
 | API v2 | Production | 36+ endpoints, JWT auth, forecast API, task API |
 | PGE App (web) | Production | Dashboard, CPDetail, Charts (aggregation), Alerts, Domains, Users, Forecast |
@@ -57,7 +57,7 @@
 | 1.1 | Installation page | Just a placeholder now, needs form/wizard | Medium |
 | 1.2 | Settings page | Just a placeholder, needs profile + password change | Medium |
 | 1.3 | Password change | Missing endpoint + UI | Small |
-| 1.4 | Sync crons to JobManager | Move sync_realtime/history/record/compute from crontab to scheduler | Medium |
+| 1.4 | ~~Sync crons to JobManager~~ | **DONE** -- migrated to task_definitions 20-22 (currently disabled, need activation) | ~~Medium~~ |
 | 1.5 | PV forecast for all CPs | Add pv_forecast_config for more plants (currently only VA + Kder Veltrusy) | Medium |
 | 1.6 | SolaX backfill | Nov 2025 - Mar 2026 not completed (was killed) | Medium |
 | 1.7 | GoodWe backfill | Complete history for all GW plants | Medium |
