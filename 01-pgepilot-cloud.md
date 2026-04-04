@@ -14,7 +14,7 @@ PgePilot is a cloud-based monitoring platform that collects data from PV inverte
 | URL | pgepilot.cz |
 | IP | 88.99.187.9 |
 | Provider | Hetzner (ARM64) |
-| Active plants | 35 collection points (GoodWe, SolaX, SmartBox) |
+| Active plants | 35 collection points (17 GoodWe, 15 SolaX, 1 SmartBox); Task 29 collects 32 plants |
 | Docker containers | 8 (verified 2026-04-04) |
 | Databases | 8 (see [05-infrastructure.md](05-infrastructure.md)) |
 | Primary API | `/api/v2/*` on port 8400 |
@@ -58,7 +58,7 @@ Worker1 --> calls GoodWe/SolaX API --> stores in DB
 |----|------|--------|-------|
 | 15 | Plant Health Check | **Yes** | All plants, reads from cache |
 | 17 | Control Relays | **Yes** | Per-plant relay strategy |
-| 18 | Historical Data Backfill | **Yes** | Re-enabled |
+| 18 | Historical Data Backfill | **Yes** | Rewritten: GetStationHistoryDataChart (1min, 57 registers) -> power_1m + power_bf. One API call per 7 days. |
 | 19 | Energy Data Backfill (GoodWe kWh) | **Yes** | Re-enabled |
 | 20 | Sync Realtime | No | Migrated from crontab, currently disabled |
 | 21 | Sync History | No | Migrated from crontab, currently disabled |
@@ -69,7 +69,7 @@ Worker1 --> calls GoodWe/SolaX API --> stores in DB
 | 26 | PV Forecast OpenMeteo | No | Alternative forecast source |
 | 27 | Forecast Correction | No | Runs via JobManager scheduler instead |
 | 28 | Task Cleanup | No | Maintenance task |
-| 29 | Collect Realtime Data | **Yes** | GW + SolaX, fills cache + realtime_state + power_rt |
+| 29 | Collect Realtime Data | **Yes** | 32 plants (31 GoodWe/SolaX + 1 SmartBox), fills cache + realtime_state + power_rt |
 
 > **Note on sync migration**: Sync crons (sync_realtime, sync_history, record_realtime_to_history) have been migrated from the service container crontab to task_definitions (IDs 20-22). The container crontab no longer contains sync entries. Forecast tasks (24-27) exist as definitions but actual scheduling is handled by the JobManager scheduler.
 
@@ -156,7 +156,48 @@ Each API connector (GoodWe, SolaX) has budget and cache awareness via `Connector
 |-----------|----------|----------|-------|
 | GOODWE_SEMS | Enabled | Enabled | 4 new cache methods not yet deployed to git |
 | SOLAX_CLOUD | Enabled | **Disabled** | API limit protection (10K/day, 100/min) |
-| SMARTBOX_RPC | Enabled | N/A | SB1 operational since 2026-04-04 |
+| SMARTBOX_RPC | Enabled | N/A | SB1 operational since 2026-04-04; plant VA_SB (ID 202) registered |
+
+---
+
+## Task 18 -- Historical Data Backfill (rewritten 2026-04-04)
+
+Task 18 was rewritten to use a higher-resolution GoodWe API endpoint:
+
+| Property | Old (before 2026-04-04) | New (after 2026-04-04) |
+|----------|------------------------|------------------------|
+| API method | GetPlantPowerChart (5min, 6 curves) | GetStationHistoryDataChart (1min, 57 registers) |
+| Output table | power_bf only | power_1m + aggregated to power_bf |
+| API call range | 1 call per day | 1 call per 7 days |
+| API endpoint | SEMS Web: POST /api/HistoryData/GetStationHistoryDataChart | Same |
+| Rate limit | -- | No rate limit observed on SEMS Web |
+| Computed fields | None | pv_power_w = Vpv1*Ipv1 + Vpv2*Ipv2, battery_power_w = V*I, load = PV + Batt - Meter |
+
+Additionally, `getPlantPowerChartAll()` now calls **GetChartByPlant** (chartIndexId=1, isDetailFull=true) which returns 12 curves (up from 6): includes per-phase meter/load and SOC2.
+
+---
+
+## Discovery Scripts (added 2026-04-04)
+
+| Script | Purpose |
+|--------|---------|
+| `scripts/goodwe_discovery.php` | Sets backfill_start_date from conn_date, updates plant metadata (pvCapacity, batteryCapacity, classification, address) |
+| `scripts/sems_fetch_all_plants.php` | Fetches all 228 SEMS plants to `sems_plant_discovery` table in pge_control |
+
+---
+
+## VA_SB -- SmartBox Pull Connector (added 2026-04-04)
+
+New plant `VA_SB` (ID 202) registered as a SmartBox pull connector:
+
+| Property | Value |
+|----------|-------|
+| Plant code | `va_sb` |
+| Plant ID | 202 |
+| Connector | SMARTBOX_RPC |
+| Collection point | `va_sb` in pge_control |
+| Time series tables | `va_sb_power_rt`, `va_sb_energy_15m` in pge_data |
+| Health URL | https://sb1-health.ra-energity.cz/telemetry |
 
 ---
 
@@ -175,9 +216,12 @@ Each API connector (GoodWe, SolaX) has budget and cache awareness via `Connector
 
 ## Known Issues
 
+- **GoodweSems OpenAPI token refresh broken** -- Task 29 Collect only collects SolaX + SmartBox (1/32 GoodWe plants working). GoodWe RT collect failing with error code 100002 (token expired). Pre-existing issue with INI file token storage, not introduced by 2026-04-04 changes.
 - GoodWe cache methods (4 new) are local edits in worker1, **not committed to git** (session ended before deploy on 2026-04-04)
+- GoodweSemsWeb credentials updated: old account [REDACTED] was deactivated (code 100029), new account [REDACTED] is working for both CrossLogin (web) and OpenAPI (GetToken)
 - Sync crons still in service container crontab instead of JobManager scheduler
 - Worker deploy uses `docker cp` (no functional git pull inside worker1)
 - Servicedesk `docker exec` does not work (OCI error) -- must use `nsenter`
 - Tailwind CSS loaded from CDN in PGE App (should be npm installed)
 - `sb-manager` on VPS has 155 restarts in 4 days (stability issue)
+- Latest commit on pgepilot-service: `0232a10` on main (pushed 2026-04-04)

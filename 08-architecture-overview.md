@@ -113,6 +113,58 @@ PgePilot Cloud (service.pgepilot.cz/rpc)
   | Stores in rpc_kv -> processed to pge_control/pge_data
 ```
 
+### Backfill Data Flow (rewritten 2026-04-04)
+
+Task 18 now uses a higher-resolution API endpoint that retrieves 1-minute register data:
+
+```
+Task 18: Historical Data Backfill (per GoodWe plant)
+  |
+  | GoodweSemsWeb.getStationHistoryData()
+  |   POST /api/HistoryData/GetStationHistoryDataChart
+  |   (SEMS Web, 1 call per 7-day range, no rate limit)
+  v
+Raw response: 57 registers at 1-minute resolution
+  |
+  | Parse + compute derived fields:
+  |   pv_power_w  = Vpv1*Ipv1 + Vpv2*Ipv2
+  |   battery_power_w = V * I
+  |   load = PV + Batt - Meter
+  v
+INSERT INTO {code}_power_1m (pge_data)
+  |
+  | Aggregate 1min -> 5min
+  v
+INSERT INTO {code}_power_bf (pge_data, includes battery_soc2_pct)
+
+Additionally:
+  getPlantPowerChartAll() -> GetChartByPlant (12 curves)
+    -> per-phase meter/load + SOC2
+    -> power_bf tables
+```
+
+### Discovery Flow (added 2026-04-04)
+
+```
+scripts/sems_fetch_all_plants.php
+  |
+  | GoodweSemsWeb.getPowerStationList()
+  |   POST /api/PowerStationMonitor/QueryPowerStationMonitor
+  |   (paginated, returns 228 SEMS plants)
+  v
+sems_plant_discovery (pge_control)
+  |
+  | in_pgepilot flag marks registered plants
+  v
+scripts/goodwe_discovery.php
+  |
+  | GoodweSemsWeb.getPlantMonitor() + getInventers()
+  |   -> backfill_start_date from conn_date
+  |   -> pvCapacity, batteryCapacity, classification, address
+  v
+Updates cp_collection_points + cp_machines metadata
+```
+
 ---
 
 ## One API, Three Clients
@@ -191,8 +243,9 @@ LEGACY (running, NOT disabled):       NEW (running alongside):
     event_log ··············>              cp_events (empty)
 
   pgepilot_data DB                       pge_data DB
-    {code}_power_5m ········>              {code}_power_1m
+    {code}_power_5m ········>              {code}_power_1m (57 registers, 1min)
     {code}_energy_5m ·······>              {code}_energy_15m
+                                           {code}_power_bf (aggregated from 1m)
 
   Legacy API v1 (still running)          API v2 (primary)
 ```

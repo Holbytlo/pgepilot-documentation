@@ -10,13 +10,13 @@
 | Component | Status | Details |
 |-----------|--------|---------|
 | Legacy PgePilot | Production | 35 collection points (GoodWe, SolaX, SmartBox), health check, relay control |
-| pge_control DB | Production | 27 tables, 35 CP, 26 devices, 40 machines, 39 connectors, realtime sync |
+| pge_control DB | Production | 28 tables (+ sems_plant_discovery), 35 CP, 26 devices, 40 machines, 39 connectors, realtime sync |
 | pge_data DB | Production | 81 tables (power_1m, energy_15m, forecast), sync crons + scheduler |
 | API v2 | Production | 36+ endpoints, JWT auth, forecast API, task API |
 | PGE App (web) | Production | Dashboard, CPDetail, Charts (aggregation), Alerts, Domains, Users, Forecast |
 | Forecast system | Production | PV (forecast.solar Pro), load (profiling), weather (Open-Meteo), adaptive correction |
 | JobManager scheduler | Production | 3 scheduled tasks (PV, load, correction) |
-| SmartBox SB1 | Production (monitoring) | 4 microservices, Modbus polling, RPC working, 2139 rpc_kv records |
+| SmartBox SB1 | Production (monitoring) | 4 microservices, Modbus polling, RPC working, 2139 rpc_kv records. Plant VA_SB (ID 202) registered as pull connector. |
 | SmartBox TOU | In progress | Spec ready, not yet implemented on real SB |
 | sb-manager | Production (unstable) | 155 restarts in 4 days |
 | Email API | Production | 5 profiles (servis, automat, technika, obchod, info) |
@@ -47,6 +47,16 @@
 | Connector self-governance | 04-04 | ConnectorBudgetTrait, cache, enabled flags per connector |
 | Docker-compose fix | 04-04 | servicedesk added to nginx-proxy-manager network |
 | api_usage retention | 04-04 | Cron deletes rows older than 30 days |
+| VA_SB plant registered | 04-04 | SmartBox pull connector, plant ID 202, tables va_sb_power_rt + va_sb_energy_15m |
+| Task 18 rewritten | 04-04 | GetStationHistoryDataChart (1min, 57 registers) replaces GetPlantPowerChart (5min, 6 curves). Output: power_1m + power_bf |
+| GetChartByPlant | 04-04 | Replaces GetPlantPowerChart in getPlantPowerChartAll(). 12 curves (+ per-phase meter/load + SOC2) |
+| power_1m tables created | 04-04 | tpl_power_1m + 17 GoodWe plant tables (57 register columns + 5 computed) |
+| sems_plant_discovery | 04-04 | 228 SEMS plants cataloged in pge_control, in_pgepilot flag |
+| battery_soc2_pct column | 04-04 | Added to all power_bf tables |
+| Discovery scripts | 04-04 | goodwe_discovery.php (metadata + backfill_start_date), sems_fetch_all_plants.php (228 plants) |
+| GoodweSemsWeb new methods | 04-04 | getPowerStationList, getPlantMonitor, getInventers, getMonitorDetail, getStationHistoryData |
+| GoodweSemsWeb credentials | 04-04 | Old account [REDACTED] deactivated (100029), new account [REDACTED] working |
+| Git push | 04-04 | pgepilot-service commit 0232a10 on main |
 
 ---
 
@@ -59,12 +69,13 @@ Items left incomplete from the last development session. Start here before new w
 | H1 | **Deploy GoodweSems.php cache** | NOT DEPLOYED | 4 new cache methods (GetDeviceAttribute, getInverterEnergyUsedDetail, GetInverterPowerV1, GetPlantPower) exist in /tmp/GoodweSems.php on local Mac. Need docker cp to all 4 containers (service + worker1/2/3), both src/ and wsrc/ paths. Then git commit + push. |
 | H2 | **Deploy SolaxCloud.php getMpptInfo cache** | NOT DEPLOYED | Local file /tmp/SolaxCloud.php. Same deploy procedure. |
 | H3 | **GoodweSemsWeb.php needs ConnectorBudgetTrait** | NOT STARTED | Separate class for web scraping GoodWe history. Has 4 read methods without cache or budget checks. |
-| H4 | **Create tpl_power_bf table** | BLOCKING | Task 18 (Historical Data Backfill) is enabled but CREATE TABLE LIKE fails because template table doesn't exist. |
+| H4 | ~~Create tpl_power_bf table~~ | **DONE** | tpl_power_1m created (57 register + 5 computed columns). 17 GoodWe plant tables created. Task 18 rewritten to use power_1m. |
 | H5 | **Activate task_definitions 20-22** | READY | Sync tasks migrated from crontab but currently disabled. Need to verify they work, then enable. |
 | H6 | **SB1 poll warning** | LOW | Communication controller logs poll as "failed" (ok=None). Either server adds `ok: true` to smartboxPoll response, or fix comm controller parsing. |
 | H7 | **SB1 NTP warning** | LOW | "NTP not initialized, using system time" -- not critical but should be resolved. |
 | H8 | **Git push SB1 changes** | PENDING | rpc_client_config.yaml, models.py, comm_controller_config.yaml, new systemd service -- need push to Holbytlo/sb branch devva. |
 | H9 | **SolaX backfill re-enable** | WAITING | Set connector_config backfill_enabled=1 for SOLAX_CLOUD after budget logic is proven reliable. |
+| H10 | **GoodweSems OpenAPI token refresh broken** | BLOCKING RT | Task 29 Collect only collects SolaX + SmartBox (1/32 GoodWe plants). GoodWe RT collect failing with error 100002 (token expired). Pre-existing issue with INI file token storage. Not introduced by 2026-04-04 changes. |
 
 ---
 
@@ -166,6 +177,7 @@ Week 4+: 2.1 (Command execution) + 2.2 (SB TOU engine)
 
 All SolaX plants have health check enabled, reading from cache (0 extra API calls). Backfill disabled for SolaX (API limit protection).
 
-### SmartBox (1 plant)
+### SmartBox (2 collection points)
 
 - SBX_DEYE25 -- SB1 at Rozdrojovice, GoodWe ET+ inverter via Modbus TCP
+- VA_SB -- SmartBox pull connector (plant ID 202), health_url: https://sb1-health.ra-energity.cz/telemetry

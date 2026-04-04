@@ -119,7 +119,7 @@ Dynamic TTL per connector per method. Tunable at runtime via servicedesk UI.
 | GOODWE_SEMS | GetInverterPowerV1 | 300 | 1 |
 | GOODWE_SEMS | GetPlantPower | 300 | 1 |
 
-17 method entries total.
+18 method entries total in DB (representative entries shown above). Note: GoodweSemsWeb methods are not yet in connector_cache_config -- they have no caching.
 
 ---
 
@@ -197,12 +197,27 @@ Tracks every API call with timestamp for rate limiter.
 | GetPlantPower | Yes | 300s | **NOT DEPLOYED** (local edit only) |
 
 ### GoodweSemsWeb.php
+
+**Credentials** (updated 2026-04-04): Old account [REDACTED] was deactivated (SEMS code 100029). New account [REDACTED] is working. Both CrossLogin (web) and OpenAPI (GetToken) use the new account.
+
+**Existing methods (no cache/budget):**
+
 | Method | Cached | TTL | Notes |
 |--------|--------|-----|-------|
 | getSoc | **No** | -- | **MISSING** ConnectorBudgetTrait entirely |
 | getPlantPowerSnapshot | **No** | -- | **MISSING** trait |
-| getPlantPowerChartAll | **No** | -- | **MISSING** trait |
+| getPlantPowerChartAll | **No** | -- | Now calls GetChartByPlant (12 curves, was GetPlantPowerChart/6 curves). **MISSING** trait |
 | getConfigParamForRemoteV3 | **No** | -- | **MISSING** trait |
+
+**New methods (added 2026-04-04, discovery + backfill):**
+
+| Method | API Endpoint | Purpose | Cached |
+|--------|-------------|---------|--------|
+| getPowerStationList() | POST /api/PowerStationMonitor/QueryPowerStationMonitor | Paginated list of all 228 SEMS plants | **No** |
+| getPlantMonitor() | POST /api/zx/PlantManage/GetPlantMonitor | Plant metadata (pvCapacity, batteryCapacity, machines) | **No** |
+| getInventers() | POST /api/PwInventers/QueryInventers | Inverter SN, type, conn_date | **No** |
+| getMonitorDetail() | POST /api/v2/PowerStation/GetMonitorDetailByPowerstationId | RT dashboard data | **No** |
+| getStationHistoryData() | POST /api/HistoryData/GetStationHistoryDataChart | 1-minute registers (57 fields), 7-day range per call. Used by Task 18. | **No** |
 
 ---
 
@@ -235,5 +250,7 @@ Connector configuration is managed in the servicedesk admin panel:
 ## Known Issues
 
 - 4 GoodweSems cache methods exist locally but are **NOT deployed or in git** (H1 in roadmap)
-- GoodweSemsWeb.php has **no ConnectorBudgetTrait** at all -- 4 methods call API without cache or budget checks (H3 in roadmap)
+- GoodweSemsWeb.php has **no ConnectorBudgetTrait** at all -- 4 original + 5 new methods (9 total) call API without cache or budget checks (H3 in roadmap)
 - SolaX backfill disabled (backfill_enabled=0) as safety measure -- re-enable when budget logic proven reliable (H9 in roadmap)
+- **GoodweSems OpenAPI token refresh broken** -- Task 29 Collect only collects SolaX + SmartBox (1/32 GoodWe plants working). Error 100002 (token expired). Pre-existing issue with INI file token storage (H10 in roadmap).
+- GoodweSemsWeb credentials were updated (old account deactivated, code 100029). New account [REDACTED] working for both CrossLogin and OpenAPI.

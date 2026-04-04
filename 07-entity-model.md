@@ -55,8 +55,9 @@ Control Domain (portfolio/tenant, e.g. "Energity demo", "Obec Citoliby")
 | data_column_meta | 20 |
 | data_source_registry | 39 |
 | sb_schema_meta | 2 |
+| sems_plant_discovery | **228** (full SEMS plant catalog, in_pgepilot flag) |
 
-Total: **27 tables** in pge_control.
+Total: **28 tables** in pge_control.
 
 ### Tree Rules
 
@@ -71,6 +72,7 @@ Total: **27 tables** in pge_control.
 - `cp_collection_points` = Collection Point (site)
 - `cp_control_points` = Control Point (signal on a Machine)
 - `{collection_point_code}_power_1m` = time series table per Collection Point
+- `tpl_power_1m` = template table used by CREATE TABLE LIKE for new plants
 
 ---
 
@@ -220,9 +222,15 @@ User -> Customer -> Plant (code, EANd, pvCapacity, batteryCapacity)
 
 ### pge_data (new)
 Per Collection Point (using `code` as prefix):
-- `{code}_power_1m` -- 1-minute power readings (W)
+- `tpl_power_1m` -- template table (57 register columns + 5 computed columns)
+- `{code}_power_1m` -- 1-minute power readings (57 registers from GetStationHistoryDataChart + 5 computed: pv_power_w, battery_power_w, load, grid_export_w, grid_import_w). Currently 17 GoodWe plant tables exist.
 - `{code}_energy_15m` -- 15-minute energy aggregation (Wh)
 - `{code}_export_alloc_15m` -- 15-minute export allocation
+- `{code}_power_bf` -- backfill power data (aggregated from power_1m). `battery_soc2_pct` column added to all power_bf tables (2026-04-04).
+
+SmartBox tables:
+- `va_sb_power_rt` -- SmartBox realtime power data (plant VA_SB)
+- `va_sb_energy_15m` -- SmartBox 15-minute energy aggregation (plant VA_SB)
 
 Global:
 - `pv_forecast` -- PV forecast data
@@ -230,7 +238,11 @@ Global:
 - `weather_forecast` -- Weather forecast data
 - `forecast_correction_log` -- Adaptive correction history
 
-Total: 81 tables.
+Total: 81+ tables (growing as new plants are added).
+
+### pge_control -- Discovery Tables (added 2026-04-04)
+
+- `sems_plant_discovery` -- catalog of all 228 SEMS plants discovered via getPowerStationList(). Contains `in_pgepilot` flag indicating which plants are already registered in PgePilot.
 
 ### pgepilot_data (legacy, migrated from pgedata.cz)
 - `{code}_power_5m` -- 5-minute power readings
