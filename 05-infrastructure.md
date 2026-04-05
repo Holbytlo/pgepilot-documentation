@@ -1,7 +1,7 @@
 # 05 -- Infrastructure
 
 > Servers, Docker, databases, networking, deploy procedures, and backups.
-> Last updated: 2026-04-04
+> Last updated: 2026-04-05
 
 > **Credentials note**: All passwords and keys are `[REDACTED]`.
 > Actual values: `zadani/pristupy a servery/PGEERP_Knowledge_Base.md` (private OneDrive).
@@ -269,13 +269,15 @@ All scheduled execution across the entire PgePilot ecosystem in one place.
 
 > **Note**: Sync crons (sync_realtime, sync_history, etc.) have been migrated OUT of crontab into task_definitions 20-22.
 
-### JobManager Scheduler (setInterval 60s)
+### JobManager Scheduler
 
-| Time | Task | Target |
-|------|------|--------|
-| Every hour :17 | PV Forecast | `POST /api/v2/tasks/run-pv-forecast` |
-| Every hour :23 | Load Forecast | `POST /api/v2/tasks/run-load-forecast` |
-| Daily 1:05 | Forecast Correction | `POST /api/v2/tasks/run-forecast-correction` |
+Git audit on 2026-04-05:
+- current `Holbytlo/pgepilot-js` `main` has the scheduled-task block commented out
+- `/scheduled_tasks` and `/run_scheduled_task` are commented out as well
+- forecast run endpoints still exist in `pgepilot-service`
+
+So the source code currently supports manual or external triggering of forecast scripts,
+but does not represent an active scheduler on `main`.
 
 ### Task System (JobManager → Service → Workers, every 3s)
 

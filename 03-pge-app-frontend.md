@@ -1,7 +1,7 @@
 # 03 -- PGE App (Web Frontend)
 
 > Vue 3 single-page application for PV installation monitoring at app.pgepilot.cz.
-> Last updated: 2026-04-04
+> Last updated: 2026-04-05
 
 ---
 
@@ -36,11 +36,10 @@ There are two apps in the servicedesk container:
 | `/cp/:code` | CPDetail.vue | Auth | Plant detail: live power, charts, devices, controls |
 | `/domeny` | Domains.vue | Auth | Domain grid with CP tags |
 | `/grafy` | Grafy.vue | Auth | Analytical charts with CP selector |
+| `/instalace` | Instalace.vue | Auth | Installation list with connector, capacity, device count, status |
 | `/alerty` | Alerty.vue | admin, operator | Alerts: critical/warning/stale filters |
 | `/uzivatele` | Users.vue | admin | User management + RBAC grants |
-| `/predikce` | Forecast.vue | admin | PV + load forecast (forecast.solar + Open-Meteo) |
-| `/instalace` | Instalace.vue | Auth | Placeholder (not implemented) |
-| `/nastaveni` | Nastaveni.vue | Auth | Placeholder (not implemented) |
+| `/nastaveni` | Nastaveni.vue | Auth | User profile, default domain, notification preferences |
 
 ---
 
@@ -70,27 +69,28 @@ There are two apps in the servicedesk container:
 - Animated energy flow between PV, house, grid, and battery
 - Real-time values from API
 
-### Forecast.vue (admin only)
-- Three tabs: PV production, consumption, balance + weather
-- forecast.solar Professional data + Open-Meteo weather
-- Historical comparison
+### Instalace.vue
+- List of collection points with code, label, connector type, PV/battery capacity, device count, status
+- Click-through from installation row to CP detail
+- Uses `/dashboard` as its source
+
+### Nastaveni.vue
+- Profile summary (name/login/role/email)
+- Default domain selection via `/users/me/preferences`
+- Notification/display preferences persisted through the same preferences endpoint
 
 ---
 
 ## Multi-Tenant Theming
 
-Hostname detection in `main.ts`:
-
-| Hostname pattern | Theme | Sidebar | Accents | Title |
-|-----------------|-------|---------|---------|-------|
-| `*.energity*` | theme-energity | Dark blue | Amber | Energity Dashboard |
-| Everything else | theme-pge | Dark green | Lime | PGE Pilot |
+Current `main` does not implement hostname-based theme switching in `main.ts`.
+Branding and navigation shell are defined directly in `App.vue`.
 
 ---
 
 ## API Integration
 
-All API calls go through `/api/v2/*` (proxied to pgepilot_service:80 by server.cjs).
+All API calls go through `/api/v2/*` (proxied to `pgepilot.cz:8400` by `server.cjs`).
 
 | Endpoint | Method | Used by |
 |----------|--------|---------|
@@ -101,12 +101,14 @@ All API calls go through `/api/v2/*` (proxied to pgepilot_service:80 by server.c
 | `/collection-points/:code/history` | GET | CPDetail.vue, Grafy.vue |
 | `/collection-points/:code/energy-summary` | GET | CPDetail.vue |
 | `/collection-points/:code/relay-groups` | GET | CPDetail.vue |
-| `/collection-points/:code/forecast` | GET | Forecast.vue |
 | `/commands` | POST | CPDetail.vue |
 | `/users` | GET/POST | Users.vue |
 | `/users/:id/grants` | GET/POST/DELETE | Users.vue |
-| `/users/me/preferences` | GET/PUT | Dashboard.vue |
+| `/users/me/preferences` | GET/PUT | Nastaveni.vue |
 | `/auth/login` | POST | Login.vue |
+
+Backend forecast endpoint `/collection-points/:code/forecast` exists in `pgepilot-service`,
+but the current `pge-app` `main` branch does not expose a dedicated `/predikce` route.
 
 Auth: JWT token stored in localStorage, sent as `Authorization: Bearer <token>`.
 
@@ -152,7 +154,7 @@ nsenter -t $SD_PID -m -u -i -n -p -- bash -c 'cd /home/app2/pge-app && npm run b
 +-- src/
     +-- main.ts             # Entry + theme detection
     +-- App.vue             # Shell (sidebar + topbar + router-view)
-    +-- router.ts           # 10 routes
+    +-- router.ts           # 9 routes
     +-- api.ts              # Axios client (/api/v2/*)
     +-- views/
     |   +-- Login.vue
@@ -162,7 +164,6 @@ nsenter -t $SD_PID -m -u -i -n -p -- bash -c 'cd /home/app2/pge-app && npm run b
     |   +-- Grafy.vue
     |   +-- Alerty.vue
     |   +-- Users.vue
-    |   +-- Forecast.vue
     |   +-- Instalace.vue
     |   +-- Nastaveni.vue
     +-- components/
@@ -178,4 +179,4 @@ nsenter -t $SD_PID -m -u -i -n -p -- bash -c 'cd /home/app2/pge-app && npm run b
 - Tailwind CSS loaded from CDN (should use `npm install tailwindcss` for production)
 - Chart.js also from CDN
 - `docker exec` doesn't work for servicedesk container (OCI error) -- must use `nsenter`
-- Instalace and Nastaveni pages are placeholders (not implemented)
+- Older notes mention `/predikce` and `Forecast.vue`, but that route/component is not present on current `main`

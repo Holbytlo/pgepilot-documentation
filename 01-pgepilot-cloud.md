@@ -1,7 +1,7 @@
 # 01 -- PgePilot Cloud Platform
 
 > Cloud monitoring and control platform for photovoltaic installations.
-> Last updated: 2026-04-04
+> Last updated: 2026-04-05
 
 ---
 
@@ -30,7 +30,7 @@ PgePilot is a cloud-based monitoring platform that collects data from PV inverte
 | **pgepilot_worker1** | 6001 | 2261 | PHP 8.1 | Executes tasks (health check, backfill, relay) | Active |
 | **pgepilot_worker2** | 6002 | 2262 | PHP 8.1 | Additional task worker | Active |
 | **pgepilot_worker3** | 6003 | 2263 | PHP 8.1 | Additional task worker | Active |
-| **pgepilot_jobmanager** | 5000-5001 | 2205 | Node.js v20, PM2 | Job orchestrator + scheduler (forecast tasks) | Active |
+| **pgepilot_jobmanager** | 5000-5001 | 2205 | Node.js v20, PM2 | Job orchestrator; scheduled forecast block is commented out on current `main` | Active |
 | **pgepilot_servicedesk** | 3050, 3060 | 2206 | Vue3, Node.js | Frontend: servicedesk (:3050) + PGE App (:3060) | Active |
 | **pgepilot_auth_srv** | 4000 | -- | Node.js, JWT | Authentication (login, token validation) | Active |
 | **nginx-proxy-manager** | 80, 443, 81 | -- | nginx | Reverse proxy, SSL, Let's Encrypt | Active |
@@ -64,20 +64,21 @@ Worker1 --> calls GoodWe/SolaX API --> stores in DB
 | 21 | Sync History | No | Migrated from crontab, currently disabled |
 | 22 | Record Realtime to History | No | Migrated from crontab, currently disabled |
 | 23 | Compute Energy 15m | **Yes** | Aggregates power_rt to energy_15m |
-| 24 | PV Forecast (forecast.solar) | No | Runs via JobManager scheduler instead |
-| 25 | Load Forecast | No | Runs via JobManager scheduler instead |
+| 24 | PV Forecast (forecast.solar) | No | Run endpoint exists in service; no active scheduler found in current `pgepilot-js` `main` |
+| 25 | Load Forecast | No | Run endpoint exists in service; no active scheduler found in current `pgepilot-js` `main` |
 | 26 | PV Forecast OpenMeteo | No | Alternative forecast source |
-| 27 | Forecast Correction | No | Runs via JobManager scheduler instead |
+| 27 | Forecast Correction | No | Run endpoint exists in service; no active scheduler found in current `pgepilot-js` `main` |
 | 28 | Task Cleanup | No | Maintenance task |
 | 29 | Collect Realtime Data | **Yes** | 32 plants (31 GoodWe/SolaX + 1 SmartBox), fills cache + realtime_state + power_rt |
 
-> **Note on sync migration**: Sync crons (sync_realtime, sync_history, record_realtime_to_history) have been migrated from the service container crontab to task_definitions (IDs 20-22). The container crontab no longer contains sync entries. Forecast tasks (24-27) exist as definitions but actual scheduling is handled by the JobManager scheduler.
+> **Git audit note (2026-04-05)**: Sync migration to `task_definitions` is represented in code. Forecast run endpoints also exist in `pgepilot-service`, but the scheduled-task block in `Holbytlo/pgepilot-js` `main` is commented out, so active scheduling is not currently represented in git source.
 
 ---
 
 ## Forecast System
 
-Three independent forecast pipelines, all managed by the JobManager scheduler (not crontab).
+Three forecast pipelines exist in the backend (`pv_forecast.php`, `load_forecast.php`, `forecast_correction.php`).
+Current git source exposes their run endpoints in `pgepilot-service`, but does not show an active scheduler in `pgepilot-js` `main`.
 
 ### PV Forecast
 - **Source**: forecast.solar Professional API
@@ -111,12 +112,15 @@ Three independent forecast pipelines, all managed by the JobManager scheduler (n
 
 ### JobManager Scheduler API
 
-```bash
-# Check scheduled tasks status
-curl http://pgepilot_jobmanager:5000/scheduled_tasks
+In current `Holbytlo/pgepilot-js` `main`, the `/scheduled_tasks` and `/run_scheduled_task`
+handlers are commented out together with the scheduler block. If production still uses them,
+that behavior is ahead of git or maintained as a server-local patch.
 
-# Manually trigger a forecast
-curl -X POST http://pgepilot_jobmanager:5000/run_scheduled_task -d '{"name":"pv_forecast"}'
+```bash
+# Run endpoints that do exist in current git source
+curl -X POST http://pgepilot_service/api/v2/tasks/run-pv-forecast
+curl -X POST http://pgepilot_service/api/v2/tasks/run-load-forecast
+curl -X POST http://pgepilot_service/api/v2/tasks/run-forecast-correction
 ```
 
 ---
@@ -206,7 +210,7 @@ New plant `VA_SB` (ID 202) registered as a SmartBox pull connector:
 | Repo | Container | Branch | Contents |
 |------|-----------|--------|----------|
 | Holbytlo/pgepilot-service | service + worker1 | main | PHP Slim4 API, TaskManager, DB migrations |
-| Holbytlo/pgepilot-js | jobmanager | main | Node.js job orchestrator, scheduler |
+| Holbytlo/pgepilot-js | jobmanager | main | Node.js job orchestrator; scheduled-task block commented out on current `main` |
 | Holbytlo/pgepilot-srv | auth_srv | main | Auth server (JWT, login) |
 | Holbytlo/pge-app | servicedesk (PM2 pge-app) | main | Vue3 frontend |
 | Holbytlo/sb | SB1: /opt/energity/sb | devva | Python SmartBox software |
@@ -219,7 +223,7 @@ New plant `VA_SB` (ID 202) registered as a SmartBox pull connector:
 - ~~GoodweSems OpenAPI token refresh broken~~ **FIXED** (2026-04-04) -- In-memory token cache + auto-retry on 100002 (commit `248351d`). All 32 plants now collected.
 - GoodWe cache methods (4 new) are local edits in worker1, **not committed to git** (session ended before deploy on 2026-04-04)
 - GoodweSemsWeb credentials updated: old account [REDACTED] was deactivated (code 100029), new account [REDACTED] is working for both CrossLogin (web) and OpenAPI (GetToken)
-- Sync crons still in service container crontab instead of JobManager scheduler
+- Git/docs mismatch around forecast scheduling: current `pgepilot-js` `main` has the scheduled-task block commented out, while older notes still describe active JobManager scheduling
 - Worker deploy uses `docker cp` (no functional git pull inside worker1)
 - Servicedesk `docker exec` does not work (OCI error) -- must use `nsenter`
 - Tailwind CSS loaded from CDN in PGE App (should be npm installed)

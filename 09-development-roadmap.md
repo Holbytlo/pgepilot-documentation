@@ -1,7 +1,7 @@
 # 09 -- Development Roadmap
 
 > Current production state, completed milestones, and prioritized work items.
-> Last updated: 2026-04-04
+> Last updated: 2026-04-05
 
 ---
 
@@ -13,9 +13,9 @@
 | pge_control DB | Production | 28 tables (+ sems_plant_discovery), 35 CP, 26 devices, 40 machines, 39 connectors, realtime sync |
 | pge_data DB | Production | 81 tables (power_1m, energy_15m, forecast), sync crons + scheduler |
 | API v2 | Production | 36+ endpoints, JWT auth, forecast API, task API |
-| PGE App (web) | Production | Dashboard, CPDetail, Charts (aggregation), Alerts, Domains, Users, Forecast |
+| PGE App (web) | Production | Dashboard, CPDetail, Charts (aggregation), Alerts, Domains, Users, Instalace, Nastaveni |
 | Forecast system | Production | PV (forecast.solar Pro), load (profiling), weather (Open-Meteo), adaptive correction |
-| JobManager scheduler | Production | 3 scheduled tasks (PV, load, correction) |
+| JobManager scheduler | Needs verification | Older docs describe 3 forecast tasks, but current `pgepilot-js` `main` has the scheduler block commented out |
 | SmartBox SB1 | Production (monitoring) | 4 microservices, Modbus polling, RPC working, 2139 rpc_kv records. Plant VA_SB (ID 202) registered as pull connector. |
 | SmartBox TOU | In progress | Spec ready, not yet implemented on real SB |
 | sb-manager | Production (unstable) | 155 restarts in 4 days |
@@ -34,9 +34,9 @@
 | PV forecast | 03-29 | forecast.solar Professional, multi-string, 6 days, 15min |
 | Load forecast | 03-29 | Weekly profile, holidays, seasonal/temperature correction |
 | Adaptive correction | 03-29 | EMA alpha=0.15, daily comparison |
-| Forecast UI | 03-29 | /predikce page (admin): PV + load + balance + weather |
+| Forecast UI | 03-29 | Historical note: older docs referenced `/predikce`, but current `pge-app` `main` has no dedicated forecast route/component |
 | Chart aggregation | 03-29 | Year: months/weeks, Month: days/weeks, Week: days/hours |
-| JobManager scheduler | 03-29 | Forecast tasks in scheduler instead of crontab |
+| JobManager scheduler | 03-29 | Historical note: current `pgepilot-js` `main` does not expose active scheduler endpoints in git |
 | Email profiles | 03-29 | 5 profiles configured |
 | Collect task (29) enabled | 04-04 | GoodWe + SolaX data flowing again |
 | SolaX API fixed | 04-04 | Reset at midnight, monitor email sent |
@@ -56,7 +56,7 @@
 | Discovery scripts | 04-04 | goodwe_discovery.php (metadata + backfill_start_date), sems_fetch_all_plants.php (228 plants) |
 | GoodweSemsWeb new methods | 04-04 | getPowerStationList, getPlantMonitor, getInventers, getMonitorDetail, getStationHistoryData |
 | GoodweSemsWeb credentials | 04-04 | Old account [REDACTED] deactivated (100029), new account [REDACTED] working |
-| Git push | 04-04 | pgepilot-service commit 0232a10 on main |
+| Git push | 04-05 audit | Current git HEADs verified: `pgepilot-service` `248351d`, `pge-app` `aaeff13`, `pgepilot-js` `4346047`, `sb` `be59807` |
 
 ---
 
@@ -73,7 +73,7 @@ Items left incomplete from the last development session. Start here before new w
 | H5 | **Activate task_definitions 20-22** | READY | Sync tasks migrated from crontab but currently disabled. Need to verify they work, then enable. |
 | H6 | **SB1 poll warning** | LOW | Communication controller logs poll as "failed" (ok=None). Either server adds `ok: true` to smartboxPoll response, or fix comm controller parsing. |
 | H7 | **SB1 NTP warning** | LOW | "NTP not initialized, using system time" -- not critical but should be resolved. |
-| H8 | **Git push SB1 changes** | PENDING | rpc_client_config.yaml, models.py, comm_controller_config.yaml, new systemd service -- need push to Holbytlo/sb branch devva. |
+| H8 | ~~Git push SB1 changes~~ | **DONE** | `Holbytlo/sb` `devva` currently points to commit `be59807` (`config: switch SB1 to production`) |
 | H9 | **SolaX backfill re-enable** | WAITING | Set connector_config backfill_enabled=1 for SOLAX_CLOUD after budget logic is proven reliable. |
 | ~~H10~~ | ~~GoodweSems OpenAPI token refresh broken~~ | **DONE** (2026-04-04) | Fixed: in-memory token cache + auto-retry on 100002. Root cause: INI file race condition between workers + no token refresh on expired response. Commit `248351d`. |
 
@@ -83,8 +83,8 @@ Items left incomplete from the last development session. Start here before new w
 
 | # | Task | Detail | Effort |
 |---|------|--------|--------|
-| 1.1 | Installation page | Just a placeholder now, needs form/wizard | Medium |
-| 1.2 | Settings page | Just a placeholder, needs profile + password change | Medium |
+| 1.1 | ~~Installation page~~ | **DONE** on current `pge-app` `main` (`aaeff13`) | ~~Medium~~ |
+| 1.2 | ~~Settings page~~ | **DONE** on current `pge-app` `main` (`aaeff13`) | ~~Medium~~ |
 | 1.3 | Password change | Missing endpoint + UI | Small |
 | 1.4 | ~~Sync crons to JobManager~~ | **DONE** -- migrated to task_definitions 20-22 (currently disabled, need activation) | ~~Medium~~ |
 | 1.5 | PV forecast for all CPs | Add pv_forecast_config for more plants (currently only VA + Kder Veltrusy) | Medium |
@@ -102,7 +102,7 @@ Items left incomplete from the last development session. Start here before new w
 | 2.3 | Mobile app | React Native, shares API v2 (spec: Tvorba mob app/) | Large |
 | 2.4 | SPOT optimization | Use OTE prices for charge/discharge planning | Medium |
 | 2.5 | BOILER/EVSE/POOL in TOU | Extend TOU engine to more device types | Medium |
-| 2.6 | Forecast in Charts | Overlay forecast on historical charts (not just separate /predikce page) | Medium |
+| 2.6 | Forecast in Charts | Overlay forecast on historical charts; current `main` has no dedicated `/predikce` page | Medium |
 | 2.7 | Docker compose | Restructure Docker infrastructure | Medium |
 
 ---
