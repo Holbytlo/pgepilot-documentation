@@ -72,18 +72,19 @@ Worker1 (PHP, port 6001)
 Result -> stored in pgepilot/pge_control/pge_data databases
 ```
 
-### Forecast Scheduling (via JobManager)
+### Recurring Scheduling (current production model)
 
 ```
-JobManager scheduler (setInterval 60s)
+task_definitions (MariaDB)
   |
-  | checks time:
-  |   :17 -> POST /api/v2/tasks/run-pv-forecast
-  |   :23 -> POST /api/v2/tasks/run-load-forecast
-  |   1:05 -> POST /api/v2/tasks/run-forecast-correction
+  | -> service /run-tasks
+  | -> JobManager /add_task
+  | -> worker /task
   v
-Service -> runs PHP forecast scripts -> results to pge_data tables
+TaskController / PHP scripts -> results to pge_data tables
 ```
+
+> Legacy `pgepilot-js` `/scheduled_tasks` notes still appear in older handoffs, but current production recurring execution is DB-backed and worker-driven.
 
 ### SmartBox Data Flow
 

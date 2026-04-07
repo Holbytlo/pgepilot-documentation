@@ -1,20 +1,20 @@
 # 12 -- Forecasting System
 
 > PV production forecast, load forecast, weather data, adaptive correction, and planned Open-Meteo physical model.
-> Last updated: 2026-04-04
+> Last updated: 2026-04-07
 
 ---
 
 ## Overview
 
-PgePilot runs three independent forecast pipelines plus an adaptive correction layer. All are managed by the JobManager scheduler (not crontab). Currently only 2 plants have PV forecast enabled.
+PgePilot runs three forecast-related pipelines plus an adaptive correction layer. Current production recurring execution is DB-backed through `task_definitions`, not through the older `pgepilot-js` `/scheduled_tasks` block. Currently only 2 plants have forecast.solar PV forecast enabled.
 
 | Pipeline | Source | Granularity | Horizon | Schedule | Status |
 |----------|--------|-------------|---------|----------|--------|
-| PV forecast | forecast.solar Professional | 15 min | 6 days | Hourly at :17 | Production (2 plants) |
-| Load forecast | Internal profiling | 15 min | 7 days | Hourly at :23 | Production (all plants) |
-| Weather forecast | Open-Meteo API | 48 points | ~2 days | With PV forecast | Production |
-| Adaptive correction | EMA (alpha=0.15) | Daily | -- | Daily at 1:05 | Production |
+| PV forecast | forecast.solar Professional | 15 min | 6 days | DB definition exists (`24`), currently disabled | Available in backend |
+| Load forecast | Internal profiling | 15 min | 7 days | DB definition exists (`25`), currently disabled | Available in backend |
+| Weather forecast / PV OM | Open-Meteo API | 48 points | ~2 days | `every:3600seconds` via task `26` | Production |
+| Adaptive correction | EMA (alpha=0.15) | Daily | -- | `daily:01:05` via task `27` | Production |
 
 ---
 
@@ -31,7 +31,8 @@ Uses the [forecast.solar](https://forecast.solar) Professional API to predict so
 | Granularity | 15-minute intervals |
 | Horizon | 6 days ahead |
 | Multi-string | Yes (separate azimuth/tilt per array) |
-| Schedule | Every hour at minute :17 |
+| DB task | `24` |
+| Schedule | Definition exists as `every:3600seconds`, currently disabled |
 | Trigger | `POST /api/v2/tasks/run-pv-forecast` |
 | Storage | `pge_data.pv_forecast` |
 | Config table | `pge_control.pv_forecast_config` |
@@ -73,7 +74,8 @@ Predicts electricity consumption using a statistical model based on historical p
 | Method | Weekly profile from last 28 days |
 | Granularity | 15-minute intervals |
 | Horizon | 7 days ahead |
-| Schedule | Every hour at minute :23 |
+| DB task | `25` |
+| Schedule | Definition exists as `every:3600seconds`, currently disabled |
 | Trigger | `POST /api/v2/tasks/run-load-forecast` |
 | Storage | `pge_data.load_forecast` |
 
@@ -113,6 +115,8 @@ Fetches weather data from [Open-Meteo](https://open-meteo.com) free API alongsid
 | Source | Open-Meteo API (free tier) |
 | Variables | Temperature, cloudiness, GHI, precipitation, wind |
 | Points | 48 forecast points |
+| DB task | `26` |
+| Schedule | `every:3600seconds` |
 | Storage | `pge_data.weather_forecast` |
 
 ### API Call
@@ -137,7 +141,8 @@ Compares yesterday's forecast with actual production using Exponential Moving Av
 | Method | EMA (Exponential Moving Average) |
 | Alpha | 0.15 (smooth, slow adaptation) |
 | Clamp range | 0.50 -- 1.80 (correction never exceeds these bounds) |
-| Schedule | Daily at 1:05 |
+| DB task | `27` |
+| Schedule | `daily:01:05` |
 | Trigger | `POST /api/v2/tasks/run-forecast-correction` |
 | Storage | `pge_data.forecast_correction_log` |
 | Script | `forecast_correction.php` |
@@ -159,44 +164,45 @@ For each enabled plant:
 
 ## Scheduling and Execution
 
-All forecast tasks are managed by the **JobManager scheduler** (Node.js, setInterval 60s), NOT by crontab.
+Current production recurring execution is DB-backed, not crontab-based.
 
 ```
-JobManager scheduler (checks time every 60s)
+task_definitions (MariaDB)
   |
-  | :17 -> POST http://pgepilot_service/api/v2/tasks/run-pv-forecast
-  | :23 -> POST http://pgepilot_service/api/v2/tasks/run-load-forecast
-  | 1:05 -> POST http://pgepilot_service/api/v2/tasks/run-forecast-correction
+  | -> service /run-tasks
+  | -> JobManager /add_task
+  | -> worker /task
   v
-Service (PHP) -> runs forecast PHP script -> stores result in pge_data tables
+TaskController -> forecast script -> pge_data tables
 ```
 
 ### Manual Operations
 
 ```bash
-# Check scheduled tasks status
-curl http://pgepilot_jobmanager:5000/scheduled_tasks
+# Trigger forecast.solar manually
+curl -X POST http://pgepilot_service/api/v2/tasks/run-pv-forecast
 
-# Manually trigger PV forecast
-curl -X POST http://pgepilot_jobmanager:5000/run_scheduled_task -d '{"name":"pv_forecast"}'
+# Trigger load forecast manually
+curl -X POST http://pgepilot_service/api/v2/tasks/run-load-forecast
 
-# Manually trigger load forecast
-curl -X POST http://pgepilot_jobmanager:5000/run_scheduled_task -d '{"name":"load_forecast"}'
+# Trigger Open-Meteo PV forecast manually
+curl -X POST http://pgepilot_service/api/v2/tasks/run-pv-forecast-om
 
-# Manually trigger correction
-curl -X POST http://pgepilot_jobmanager:5000/run_scheduled_task -d '{"name":"forecast_correction"}'
+# Trigger correction manually
+curl -X POST http://pgepilot_service/api/v2/tasks/run-forecast-correction
 ```
 
 ### Task Definitions in DB
 
 | Task ID | Name | Active | Notes |
 |---------|------|--------|-------|
-| 24 | PV Forecast (forecast.solar) | 0 | Runs via JobManager scheduler, not task system |
-| 25 | Load Forecast | 0 | Runs via JobManager scheduler |
-| 26 | PV Forecast OpenMeteo | 0 | Alternative source, not yet implemented |
-| 27 | Forecast Correction | 0 | Runs via JobManager scheduler |
+| 24 | PV Forecast (forecast.solar) | 0 | Run endpoint exists; DB definition currently disabled |
+| 25 | Load Forecast | 0 | Run endpoint exists; DB definition currently disabled |
+| 26 | PV Forecast OpenMeteo | 1 | Active hourly production task |
+| 27 | Forecast Correction | 1 | Active daily production task |
+| 28 | Task Cleanup | 1 | Maintenance task; often discussed together with forecast automation |
 
-These task definitions exist but are disabled (active=0) because the forecasts run through the JobManager scheduler mechanism, not the standard task execution pipeline.
+The old `pgepilot-js` scheduler notes are no longer canonical. Current production recurring execution is represented by these DB task definitions plus worker execution.
 
 ---
 
@@ -227,15 +233,9 @@ POST /api/v2/tasks/run-forecast-correction
 
 ## Frontend (PGE App)
 
-The `/predikce` page (admin only) shows forecast data in 3 tabs:
+Older UI notes referenced a dedicated `/predikce` page, but current `pge-app` `main` has no dedicated forecast route/component.
 
-| Tab | Content |
-|-----|---------|
-| PV Production | forecast.solar prediction chart, actual vs predicted |
-| Consumption | Load forecast chart, historical profile |
-| Balance + Weather | Net balance (PV - load), weather overlay (temperature, cloud, GHI) |
-
-Component: `src/views/Forecast.vue`
+Forecast data is currently consumed through backend APIs and surrounding dashboards / collection-point detail views rather than a standalone forecast page.
 
 ---
 
@@ -365,6 +365,7 @@ For production with multiple plants, Professional tier is recommended.
 
 - PV forecast only for 2/35 plants (VA, Kder Veltrusy) -- need to expand pv_forecast_config
 - forecast.solar API key is hardcoded (should be in env var or config table)
-- Task definitions 24-27 exist but are disabled (forecasts run via JobManager scheduler mechanism)
+- Task definitions `24` and `25` exist but remain disabled in DB
+- Task definitions `26` and `27` are active and represent the current production recurring forecast/correction flow
 - No forecast overlay in main Charts page (only separate /predikce page) -- Priority 2.6 in roadmap
 - Open-Meteo physical model is designed but NOT implemented yet

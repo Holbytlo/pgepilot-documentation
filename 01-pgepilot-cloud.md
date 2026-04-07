@@ -1,7 +1,7 @@
 # 01 -- PgePilot Cloud Platform
 
 > Cloud monitoring and control platform for photovoltaic installations.
-> Last updated: 2026-04-05
+> Last updated: 2026-04-07
 
 ---
 
@@ -30,7 +30,7 @@ PgePilot is a cloud-based monitoring platform that collects data from PV inverte
 | **pgepilot_worker1** | 6001 | 2261 | PHP 8.1 | Executes tasks (health check, backfill, relay) | Active |
 | **pgepilot_worker2** | 6002 | 2262 | PHP 8.1 | Additional task worker | Active |
 | **pgepilot_worker3** | 6003 | 2263 | PHP 8.1 | Additional task worker | Active |
-| **pgepilot_jobmanager** | 5000-5001 | 2205 | Node.js v20, PM2 | Job orchestrator; scheduled forecast block is commented out on current `main` | Active |
+| **pgepilot_jobmanager** | 5000-5001 | 2205 | Node.js v20, PM2 | Job orchestrator; current production recurring work is driven by DB-backed `task_definitions`, while the older `/scheduled_tasks` block stays commented on current `main` | Active |
 | **pgepilot_servicedesk** | 3050, 3060 | 2206 | Vue3, Node.js | Frontend: servicedesk (:3050) + PGE App (:3060) | Active |
 | **pgepilot_auth_srv** | 4000 | -- | Node.js, JWT | Authentication (login, token validation) | Active |
 | **nginx-proxy-manager** | 80, 443, 81 | -- | nginx | Reverse proxy, SSL, Let's Encrypt | Active |
@@ -52,7 +52,7 @@ JobManager --> POST /task to Worker1
 Worker1 --> calls GoodWe/SolaX API --> stores in DB
 ```
 
-### Task Definitions (verified 2026-04-04)
+### Task Definitions (verified 2026-04-07)
 
 | ID | Name | Active | Notes |
 |----|------|--------|-------|
@@ -63,28 +63,31 @@ Worker1 --> calls GoodWe/SolaX API --> stores in DB
 | 20 | Sync Realtime | No | Migrated from crontab, currently disabled |
 | 21 | Sync History | No | Migrated from crontab, currently disabled |
 | 22 | Record Realtime to History | No | Migrated from crontab, currently disabled |
-| 23 | Compute Energy 15m | **Yes** | Aggregates power_rt to energy_15m |
-| 24 | PV Forecast (forecast.solar) | No | Run endpoint exists in service; no active scheduler found in current `pgepilot-js` `main` |
-| 25 | Load Forecast | No | Run endpoint exists in service; no active scheduler found in current `pgepilot-js` `main` |
-| 26 | PV Forecast OpenMeteo | No | Alternative forecast source |
-| 27 | Forecast Correction | No | Run endpoint exists in service; no active scheduler found in current `pgepilot-js` `main` |
-| 28 | Task Cleanup | No | Maintenance task |
-| 29 | Collect Realtime Data | **Yes** | 32 plants (31 GoodWe/SolaX + 1 SmartBox), fills cache + realtime_state + power_rt |
+| 23 | Compute Energy 15m | **Yes** | `every:900seconds`; aggregates realtime power into `energy_15m` |
+| 24 | PV Forecast (forecast.solar) | No | `every:3600seconds`; endpoint exists in service, DB definition currently disabled |
+| 25 | Load Forecast | No | `every:3600seconds`; endpoint exists in service, DB definition currently disabled |
+| 26 | PV Forecast OpenMeteo | **Yes** | `every:3600seconds`; current active recurring forecast source |
+| 27 | Forecast Correction | **Yes** | `daily:01:05`; adaptive correction task |
+| 28 | Task Cleanup | **Yes** | `every:3600seconds`; task archive / maintenance |
+| 29 | Collect Realtime Data | **Yes** | `every:300seconds`; fills cache + `realtime_state` + `power_rt` |
+| 30 | OTE Spot Import Today | **Yes** | `daily:00:05`; imports published PT15M day-ahead prices for today |
+| 31 | OTE Spot Import Tomorrow | **Yes** | `daily:12:10`; imports today + tomorrow, skipping tomorrow if OTE has not published yet |
 
-> **Git audit note (2026-04-05)**: Sync migration to `task_definitions` is represented in code. Forecast run endpoints also exist in `pgepilot-service`, but the scheduled-task block in `Holbytlo/pgepilot-js` `main` is commented out, so active scheduling is not currently represented in git source.
+> **Runtime note (2026-04-07)**: Current production scheduling is represented by `pgep_tasks.task_definitions` plus worker `/task` execution. The older `Holbytlo/pgepilot-js` `/scheduled_tasks` block is still commented on current `main`, so it is no longer the primary source of truth for recurring production jobs.
 
 ---
 
 ## Forecast System
 
 Three forecast pipelines exist in the backend (`pv_forecast.php`, `load_forecast.php`, `forecast_correction.php`).
-Current git source exposes their run endpoints in `pgepilot-service`, but does not show an active scheduler in `pgepilot-js` `main`.
+Current production uses DB-backed recurring task definitions for Open-Meteo and forecast correction; forecast.solar and load-forecast run endpoints remain available in service but their DB definitions are currently disabled.
 
 ### PV Forecast
 - **Source**: forecast.solar Professional API
 - **Granularity**: 15-minute intervals, 6 days ahead
 - **Features**: Multi-string support (azimuth/tilt per array)
-- **Schedule**: Every hour at :17
+- **DB task**: `24`
+- **Schedule**: Definition exists as `every:3600seconds`, currently disabled in DB
 - **Trigger**: `POST /api/v2/tasks/run-pv-forecast`
 - **Storage**: `pge_data.pv_forecast`
 - **Config**: `pge_control.pv_forecast_config` (currently 2 plants enabled: VA, Kder Veltrusy)
@@ -93,12 +96,15 @@ Current git source exposes their run endpoints in `pgepilot-service`, but does n
 - **Method**: Weekly profile from last 28 days + Czech holidays + seasonal correction + temperature correction
 - **Seasonal factors**: January 1.35, July 0.70 (heating/cooling adjustments)
 - **Granularity**: 15-minute intervals, 7 days ahead
-- **Schedule**: Every hour at :23
+- **DB task**: `25`
+- **Schedule**: Definition exists as `every:3600seconds`, currently disabled in DB
 - **Trigger**: `POST /api/v2/tasks/run-load-forecast`
 - **Storage**: `pge_data.load_forecast`
 
 ### Weather Forecast
 - **Source**: Open-Meteo API (temperature, cloudiness, GHI, precipitation, wind)
+- **DB task**: `26`
+- **Schedule**: `every:3600seconds`
 - **Points**: 48 forecast points
 - **Storage**: `pge_data.weather_forecast`
 
@@ -106,22 +112,58 @@ Current git source exposes their run endpoints in `pgepilot-service`, but does n
 - **Method**: EMA (Exponential Moving Average), alpha=0.15
 - **Compares**: Previous forecast vs actual production
 - **Clamp range**: 0.50 -- 1.80
-- **Schedule**: Daily at 1:05
+- **DB task**: `27`
+- **Schedule**: `daily:01:05`
 - **Trigger**: `POST /api/v2/tasks/run-forecast-correction`
 - **Storage**: `pge_data.forecast_correction_log`
 
-### JobManager Scheduler API
+### Current Scheduling Model
 
-In current `Holbytlo/pgepilot-js` `main`, the `/scheduled_tasks` and `/run_scheduled_task`
-handlers are commented out together with the scheduler block. If production still uses them,
-that behavior is ahead of git or maintained as a server-local patch.
+Current production recurring execution is:
+
+```text
+task_definitions (MariaDB) -> service /run-tasks -> JobManager /add_task -> worker /task
+```
+
+The older `pgepilot-js` `/scheduled_tasks` and `/run_scheduled_task` handlers remain commented on current `main`, so they should be treated as legacy notes rather than the canonical production scheduler API.
 
 ```bash
 # Run endpoints that do exist in current git source
 curl -X POST http://pgepilot_service/api/v2/tasks/run-pv-forecast
 curl -X POST http://pgepilot_service/api/v2/tasks/run-load-forecast
 curl -X POST http://pgepilot_service/api/v2/tasks/run-forecast-correction
+curl -X POST http://pgepilot_service/api/v2/tasks/run-pv-forecast-om
 ```
+
+---
+
+## OTE Day-Ahead Spot Import (added 2026-04-07)
+
+PgePilot now imports OTE day-ahead electricity prices in **15-minute** resolution through a dedicated service route and recurring task definitions.
+
+| Property | Value |
+|----------|-------|
+| Route | `GET /ote/import` |
+| Alias | `GET /oteTest` |
+| Default resolution | `PT15M` |
+| Storage table | `ote_day_ahead_prices` |
+| Import wrapper | `TaskController::runOteSpotImport()` |
+| Active tasks | `30` (today), `31` (today + tomorrow) |
+
+### Manual examples
+
+```bash
+curl 'http://pgepilot_service/ote/import'
+curl 'http://pgepilot_service/ote/import?include_tomorrow=1'
+curl 'http://pgepilot_service/ote/import?dry_run=1&include_tomorrow=1'
+curl 'http://pgepilot_service/ote/import?date=2026-04-07&time_resolution=PT15M'
+```
+
+### Scheduling semantics
+
+- Task `30` runs daily at `00:05` and refreshes today's published PT15M prices.
+- Task `31` runs daily at `12:10` and fetches today plus tomorrow.
+- If tomorrow's auction data has not been published yet, the importer marks that date as `skipped` instead of failing the whole job.
 
 ---
 
@@ -210,7 +252,7 @@ New plant `VA_SB` (ID 202) registered as a SmartBox pull connector:
 | Repo | Container | Branch | Contents |
 |------|-----------|--------|----------|
 | Holbytlo/pgepilot-service | service + worker1 | main | PHP Slim4 API, TaskManager, DB migrations |
-| Holbytlo/pgepilot-js | jobmanager | main | Node.js job orchestrator; scheduled-task block commented out on current `main` |
+| Holbytlo/pgepilot-js | jobmanager | main | Node.js job orchestrator; legacy scheduler block commented, production recurring work now anchored in DB task definitions |
 | Holbytlo/pgepilot-srv | auth_srv | main | Auth server (JWT, login) |
 | Holbytlo/pge-app | servicedesk (PM2 pge-app) | main | Vue3 frontend |
 | Holbytlo/sb | SB1: /opt/energity/sb | devva | Python SmartBox software |
@@ -223,9 +265,9 @@ New plant `VA_SB` (ID 202) registered as a SmartBox pull connector:
 - ~~GoodweSems OpenAPI token refresh broken~~ **FIXED** (2026-04-04) -- In-memory token cache + auto-retry on 100002 (commit `248351d`). All 32 plants now collected.
 - GoodWe cache methods (4 new) are local edits in worker1, **not committed to git** (session ended before deploy on 2026-04-04)
 - GoodweSemsWeb credentials updated: old account [REDACTED] was deactivated (code 100029), new account [REDACTED] is working for both CrossLogin (web) and OpenAPI (GetToken)
-- Git/docs mismatch around forecast scheduling: current `pgepilot-js` `main` has the scheduled-task block commented out, while older notes still describe active JobManager scheduling
+- Legacy notes around `/scheduled_tasks` still appear in older docs; current production scheduling is DB-backed through `task_definitions`
 - Worker deploy uses `docker cp` (no functional git pull inside worker1)
 - Servicedesk `docker exec` does not work (OCI error) -- must use `nsenter`
 - Tailwind CSS loaded from CDN in PGE App (should be npm installed)
 - `sb-manager` on VPS has 155 restarts in 4 days (stability issue)
-- Latest commit on pgepilot-service: `0232a10` on main (pushed 2026-04-04)
+- Latest commit on pgepilot-service main: `a862919` (pushed 2026-04-07, aligned with live production service state)

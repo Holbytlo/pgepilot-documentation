@@ -84,9 +84,12 @@ mysql -u root -p[REDACTED] -h 127.0.0.1 pge_control -e '
 docker exec pgepilot_service crontab -l
 docker exec pgepilot_service bash -c 'cd /var/www/html && git log --oneline -5'
 
-# JobManager: PM2 + scheduled tasks
+# JobManager: PM2 + runtime
 docker exec pgepilot_jobmanager pm2 list
-curl -s http://localhost:5000/scheduled_tasks | python3 -m json.tool
+
+# Current production scheduler truth lives in DB task_definitions
+mysql -u root -p[REDACTED] pgep_tasks -e "SELECT id, name, active, repeating_time FROM task_definitions ORDER BY id;"
+mysql -u root -p[REDACTED] pgep_tasks -e "SELECT id, task_definition_id, status, completed_at FROM tasks ORDER BY id DESC LIMIT 20;"
 
 # Servicedesk: PM2 (apps running)
 docker exec pgepilot_servicedesk pm2 list

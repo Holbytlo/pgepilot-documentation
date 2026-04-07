@@ -1,7 +1,7 @@
 # 05 -- Infrastructure
 
 > Servers, Docker, databases, networking, deploy procedures, and backups.
-> Last updated: 2026-04-05
+> Last updated: 2026-04-07
 
 > **Credentials note**: All passwords and keys are `[REDACTED]`.
 > Actual values: `zadani/pristupy a servery/PGEERP_Knowledge_Base.md` (private OneDrive).
@@ -105,7 +105,7 @@ MariaDB running on host (not in Docker). Connection: `pgepilot.cz:3306`, user: `
 | Database | Purpose | Key Tables | Size (verified 2026-04-04) |
 |----------|---------|------------|---------------------------|
 | **pgepilot** | Legacy plants, machines, config | plants(36), machines(39), relay_groups, event_log, plant_realtime_status | **7166 MB** |
-| **pgep_tasks** | Task management (shared) | task_definitions(15), tasks, tasks_archive | **4726 MB** |
+| **pgep_tasks** | Task management (shared) | task_definitions, tasks, tasks_archive | **4726 MB** |
 | **pgepilot_dashboard** | Notifications | notification_outbox | **2549 MB** |
 | **pgepilot_data** | Legacy time series (migrated from pgedata.cz 2026-03-28) | {code}_power_5m, {code}_energy_5m (55 tables) | **732 MB** |
 | **pge_data** | New time series + forecast | {code}_power_1m, {code}_energy_15m, pv_forecast, load_forecast (81 tables) | **480 MB** |
@@ -269,15 +269,15 @@ All scheduled execution across the entire PgePilot ecosystem in one place.
 
 > **Note**: Sync crons (sync_realtime, sync_history, etc.) have been migrated OUT of crontab into task_definitions 20-22.
 
-### JobManager Scheduler
+### JobManager / Scheduler Reality
 
-Git audit on 2026-04-05:
-- current `Holbytlo/pgepilot-js` `main` has the scheduled-task block commented out
-- `/scheduled_tasks` and `/run_scheduled_task` are commented out as well
-- forecast run endpoints still exist in `pgepilot-service`
+As of 2026-04-07, current production recurring execution is DB-driven:
 
-So the source code currently supports manual or external triggering of forecast scripts,
-but does not represent an active scheduler on `main`.
+```text
+task_definitions (MariaDB) -> service /run-tasks -> JobManager /add_task -> worker /task
+```
+
+The older `Holbytlo/pgepilot-js` `/scheduled_tasks` and `/run_scheduled_task` handlers remain commented on current `main`. They should be treated as legacy notes, not as the primary production scheduler model.
 
 ### Task System (JobManager → Service → Workers, every 3s)
 
@@ -287,11 +287,26 @@ but does not represent an active scheduler on `main`.
 | 17 | Control Relays | Yes | Repeating |
 | 18 | Historical Data Backfill | Yes | Repeating |
 | 19 | Energy Data Backfill (GoodWe) | Yes | Repeating |
-| 20 | Sync Realtime | **No** | Migrated from cron, needs activation |
-| 21 | Sync History | **No** | Migrated from cron, needs activation |
-| 22 | Record Realtime to History | **No** | Migrated from cron, needs activation |
-| 23 | Compute Energy 15m | Yes | Every 15 min |
-| 29 | Collect Realtime Data | Yes | Repeating |
+| 20 | Sync Realtime | **No** | Migrated from cron, still disabled |
+| 21 | Sync History | **No** | Migrated from cron, still disabled |
+| 22 | Record Realtime to History | **No** | Migrated from cron, still disabled |
+| 23 | Compute Energy 15m | Yes | `every:900seconds` |
+| 24 | PV Forecast (forecast.solar) | **No** | `every:3600seconds` |
+| 25 | Load Forecast | **No** | `every:3600seconds` |
+| 26 | PV Forecast OpenMeteo | Yes | `every:3600seconds` |
+| 27 | Forecast Correction | Yes | `daily:01:05` |
+| 28 | Task Cleanup | Yes | `every:3600seconds` |
+| 29 | Collect Realtime Data | Yes | `every:300seconds` |
+| 30 | OTE Spot Import Today | Yes | `daily:00:05` |
+| 31 | OTE Spot Import Tomorrow | Yes | `daily:12:10` |
+
+### OTE Import Verification
+
+Production verification on 2026-04-07 confirmed:
+
+- task definition `30` completed through JobManager/worker flow and imported 96 PT15M rows for today
+- task definition `31` completed through JobManager/worker flow and imported 192 PT15M rows for today + tomorrow
+- the importer route is `GET /ote/import` in `pgepilot_service`, while workers call it through `TaskController::runOteSpotImport()`
 
 ---
 

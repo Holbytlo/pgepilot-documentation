@@ -1,7 +1,7 @@
 # 06 -- API Reference
 
 > All API endpoints: PgePilot v2, legacy v1, Email, RPC, JobManager, and external connectors.
-> Last updated: 2026-04-04
+> Last updated: 2026-04-07
 
 ---
 
@@ -30,7 +30,7 @@ Token is issued by `pgepilot_auth_srv` (port 4000).
 
 Base URL: `https://api.pgepilot.cz/api/v2/` (or `pgepilot.cz:8400/api/v2/` internally)
 
-Implemented in: `pgepilot-service/src/Routes/routes_pge_control.php`
+Implemented primarily in: `pgepilot-service/app/routes_pge_control.php`
 
 ### Dashboard & Navigation
 
@@ -88,6 +88,7 @@ Implemented in: `pgepilot-service/src/Routes/routes_pge_control.php`
 | `/tasks/run-pv-forecast` | POST | Trigger PV forecast (called by JobManager) |
 | `/tasks/run-load-forecast` | POST | Trigger load forecast |
 | `/tasks/run-forecast-correction` | POST | Trigger adaptive correction |
+| `/tasks/run-pv-forecast-om` | POST | Trigger Open-Meteo PV forecast |
 
 ### Onboarding
 
@@ -134,6 +135,28 @@ POST https://service.pgepilot.cz/sendEmail
 
 ---
 
+## OTE Market Data Import
+
+Root-level service route (not under `/api/v2`):
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/ote/import` | GET | Import OTE day-ahead PT15M/PT60M prices into `ote_day_ahead_prices` |
+| `/oteTest` | GET | Alias to the same importer |
+
+Supported query params:
+
+- `date=YYYY-MM-DD`
+- `date_from=YYYY-MM-DD`
+- `date_to=YYYY-MM-DD`
+- `include_tomorrow=1`
+- `time_resolution=PT15M|PT60M`
+- `dry_run=1`
+- `allow_missing_future=1`
+- `table=ote_day_ahead_prices`
+
+---
+
 ## SmartBox RPC API (sb.* namespace)
 
 JSON-RPC 2.0 over HTTPS. Used for SmartBox TOU control.
@@ -160,16 +183,17 @@ SmartBox communication methods:
 
 ---
 
-## JobManager API
+## Task Orchestration (internal)
 
-Base URL: `http://pgepilot_jobmanager:5000/` (internal only)
+Current production recurring execution is DB-backed and uses these internal endpoints:
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/scheduled_tasks` | GET | List all scheduled tasks with status |
-| `/run_scheduled_task` | POST | Manually trigger a scheduled task. Body: `{"name":"pv_forecast"}` |
-| `/add_task` | POST | Add task to queue (called by service) |
-| `/task` | POST | Execute task (called by JobManager -> worker1) |
+| Component | Endpoint | Method | Description |
+|----------|----------|--------|-------------|
+| service | `/run-tasks` | GET | Generate DB tasks from active definitions and send pending jobs to JobManager |
+| jobmanager | `/add_task` | POST | Accept queued task from service |
+| worker | `/task` | POST | Execute a task payload by calling the matching `TaskController` function |
+
+> **Legacy note**: older docs referenced JobManager `/scheduled_tasks` and `/run_scheduled_task`, but those handlers are commented on current `Holbytlo/pgepilot-js` `main` and are no longer the primary production scheduler model.
 
 ---
 

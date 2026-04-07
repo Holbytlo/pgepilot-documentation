@@ -1,7 +1,7 @@
 # 09 -- Development Roadmap
 
 > Current production state, completed milestones, and prioritized work items.
-> Last updated: 2026-04-05
+> Last updated: 2026-04-07
 
 ---
 
@@ -11,11 +11,11 @@
 |-----------|--------|---------|
 | Legacy PgePilot | Production | 35 collection points (GoodWe, SolaX, SmartBox), health check, relay control |
 | pge_control DB | Production | 28 tables (+ sems_plant_discovery), 35 CP, 26 devices, 40 machines, 39 connectors, realtime sync |
-| pge_data DB | Production | 81 tables (power_1m, energy_15m, forecast), sync crons + scheduler |
+| pge_data DB | Production | 81 tables (power_1m, energy_15m, forecast) + OTE spot import table in service DB |
 | API v2 | Production | 36+ endpoints, JWT auth, forecast API, task API |
 | PGE App (web) | Production | Dashboard, CPDetail, Charts (aggregation), Alerts, Domains, Users, Instalace, Nastaveni |
 | Forecast system | Production | PV (forecast.solar Pro), load (profiling), weather (Open-Meteo), adaptive correction |
-| JobManager scheduler | Needs verification | Older docs describe 3 forecast tasks, but current `pgepilot-js` `main` has the scheduler block commented out |
+| JobManager scheduler | Production | Current recurring runtime is DB-backed through `task_definitions`; legacy `pgepilot-js` scheduler block stays commented on current `main` |
 | SmartBox SB1 | Production (monitoring) | 4 microservices, Modbus polling, RPC working, 2139 rpc_kv records. Plant VA_SB (ID 202) registered as pull connector. |
 | SmartBox TOU | In progress | Spec ready, not yet implemented on real SB |
 | sb-manager | Production (unstable) | 155 restarts in 4 days |
@@ -36,7 +36,7 @@
 | Adaptive correction | 03-29 | EMA alpha=0.15, daily comparison |
 | Forecast UI | 03-29 | Historical note: older docs referenced `/predikce`, but current `pge-app` `main` has no dedicated forecast route/component |
 | Chart aggregation | 03-29 | Year: months/weeks, Month: days/weeks, Week: days/hours |
-| JobManager scheduler | 03-29 | Historical note: current `pgepilot-js` `main` does not expose active scheduler endpoints in git |
+| JobManager scheduler | 03-29 to 04-07 | Runtime now verified as DB-backed `task_definitions` + workers; legacy scheduler endpoints remain commented in current `pgepilot-js` |
 | Email profiles | 03-29 | 5 profiles configured |
 | Collect task (29) enabled | 04-04 | GoodWe + SolaX data flowing again |
 | SolaX API fixed | 04-04 | Reset at midnight, monitor email sent |
@@ -56,7 +56,9 @@
 | Discovery scripts | 04-04 | goodwe_discovery.php (metadata + backfill_start_date), sems_fetch_all_plants.php (228 plants) |
 | GoodweSemsWeb new methods | 04-04 | getPowerStationList, getPlantMonitor, getInventers, getMonitorDetail, getStationHistoryData |
 | GoodweSemsWeb credentials | 04-04 | Old account [REDACTED] deactivated (100029), new account [REDACTED] working |
-| Git push | 04-05 audit | Current git HEADs verified: `pgepilot-service` `248351d`, `pge-app` `aaeff13`, `pgepilot-js` `4346047`, `sb` `be59807` |
+| OTE PT15M importer | 04-07 | `GET /ote/import` added in service, stores into `ote_day_ahead_prices` |
+| OTE tasks 30/31 | 04-07 | JobManager-verified imports for today (`00:05`) and today+tomorrow (`12:10`) |
+| Git push | 04-07 audit | `pgepilot-service` `main` aligned to live production in commit `a862919`; `pge-app` `main` includes login-loop fix `e2a0cc3` |
 
 ---
 
@@ -100,7 +102,7 @@ Items left incomplete from the last development session. Start here before new w
 | 2.1 | Command execution | cp_commands -> connector poll -> device. Backend exists, needs execution | Large |
 | 2.2 | SB TOU engine | sb.* API on real SB1 (spec: zadani_api_commandu_sb_plant_v0_1.docx) | Large |
 | 2.3 | Mobile app | React Native, shares API v2 (spec: Tvorba mob app/) | Large |
-| 2.4 | SPOT optimization | Use OTE prices for charge/discharge planning | Medium |
+| 2.4 | SPOT optimization | OTE PT15M import is in production; next step is to use these prices for charge/discharge planning | Medium |
 | 2.5 | BOILER/EVSE/POOL in TOU | Extend TOU engine to more device types | Medium |
 | 2.6 | Forecast in Charts | Overlay forecast on historical charts; current `main` has no dedicated `/predikce` page | Medium |
 | 2.7 | Docker compose | Restructure Docker infrastructure | Medium |
