@@ -1,7 +1,7 @@
 # 03 -- PGE App (Web Frontend)
 
 > Vue 3 single-page application for PV installation monitoring at app.pgepilot.cz.
-> Last updated: 2026-04-05
+> Last updated: 2026-04-09
 
 ---
 
@@ -15,7 +15,7 @@ PGE App is a client-facing Vue 3 SPA for monitoring PV installations. It runs al
 | Port | 3060 |
 | PM2 process | pge-app (id 2) |
 | Container | pgepilot_servicedesk |
-| Git repo | Holbytlo/pge-app (branch: main) |
+| Git repo | Holbytlo/pge-app (GitHub `main` = `05e61e0`; production source checkout currently `aaeff13` + local edits) |
 | Tech stack | Vue 3 + TypeScript + Vite 8 + Tailwind CSS (CDN) + Chart.js 4 (CDN) |
 
 There are two apps in the servicedesk container:
@@ -133,9 +133,8 @@ pm2 restart pge-app
 # Copy files to servicedesk container
 docker cp /tmp/Component.vue pgepilot_servicedesk:/home/app2/pge-app/src/views/...
 
-# Build inside container (via nsenter, docker exec doesn't work)
-SD_PID=$(docker inspect pgepilot_servicedesk --format '{{.State.Pid}}')
-nsenter -t $SD_PID -m -u -i -n -p -- bash -c 'cd /home/app2/pge-app && npm run build'
+# Build inside container
+docker exec pgepilot_servicedesk sh -lc 'cd /home/app2/pge-app && npm run build'
 ```
 
 ---
@@ -178,5 +177,5 @@ nsenter -t $SD_PID -m -u -i -n -p -- bash -c 'cd /home/app2/pge-app && npm run b
 
 - Tailwind CSS loaded from CDN (should use `npm install tailwindcss` for production)
 - Chart.js also from CDN
-- `docker exec` doesn't work for servicedesk container (OCI error) -- must use `nsenter`
 - Older notes mention `/predikce` and `Forecast.vue`, but that route/component is not present on current `main`
+- Production source tree inside `pgepilot_servicedesk` is still `main@aaeff13` plus local edits and generated files; it is not a clean checkout of GitHub `main`

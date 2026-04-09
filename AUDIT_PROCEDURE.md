@@ -2,7 +2,7 @@
 
 > Step-by-step guide for verifying real server state against documentation.
 > Use this when updating docs or onboarding to a new session.
-> Last updated: 2026-04-04
+> Last updated: 2026-04-09
 
 ---
 
@@ -82,20 +82,26 @@ mysql -u root -p[REDACTED] -h 127.0.0.1 pge_control -e '
 ```bash
 # Service container: crontab + git
 docker exec pgepilot_service crontab -l
-docker exec pgepilot_service bash -c 'cd /var/www/html && git log --oneline -5'
+docker exec pgepilot_service bash -lc 'cd /var/www/html && git rev-parse --abbrev-ref HEAD && git rev-parse HEAD && git status --short | head -40'
 
-# JobManager: PM2 + runtime
-docker exec pgepilot_jobmanager pm2 list
+# JobManager: runtime lives in /home/app
+docker exec pgepilot_jobmanager sh -lc 'cd /home/app && git rev-parse --abbrev-ref HEAD && git rev-parse HEAD && git status --short | head -40'
 
 # Current production scheduler truth lives in DB task_definitions
 mysql -u root -p[REDACTED] pgep_tasks -e "SELECT id, name, active, repeating_time FROM task_definitions ORDER BY id;"
 mysql -u root -p[REDACTED] pgep_tasks -e "SELECT id, task_definition_id, status, completed_at FROM tasks ORDER BY id DESC LIMIT 20;"
 
-# Servicedesk: PM2 (apps running)
-docker exec pgepilot_servicedesk pm2 list
+# Servicedesk frontend/admin checkouts
+docker exec pgepilot_servicedesk sh -lc 'cd /home/app2/pge-app && git rev-parse --abbrev-ref HEAD && git rev-parse HEAD && git status --short | head -40'
+docker exec pgepilot_servicedesk sh -lc 'cd /home/app2/servicedesk && git rev-parse --abbrev-ref HEAD && git rev-parse HEAD && git status --short | head -40'
 
-# Worker git status (if functional)
-docker exec pgepilot_worker1 bash -c 'cd /var/www/html && git log --oneline -3' 2>/dev/null || echo "git not working in worker"
+# Auth runtime (may be deploy artifact, not git)
+docker exec pgepilot_auth_srv sh -lc 'pwd; find / -maxdepth 4 -name .git 2>/dev/null | head -10'
+
+# Worker git status
+docker exec pgepilot_worker1 bash -lc 'cd /var/www/html && git rev-parse --abbrev-ref HEAD && git rev-parse HEAD && git status --short | head -60'
+docker exec pgepilot_worker2 bash -lc 'cd /var/www/html && git rev-parse --abbrev-ref HEAD && git rev-parse HEAD && git status --short | head -60'
+docker exec pgepilot_worker3 bash -lc 'cd /var/www/html && git rev-parse --abbrev-ref HEAD && git rev-parse HEAD && git status --short | head -60'
 ```
 
 ### Host crontab
@@ -133,6 +139,8 @@ uname -a && df -h / && free -h
 ### Services
 ```bash
 pm2 list                                    # PM2 processes (sb-manager, sim)
+cd /opt/sb-manager && git rev-parse --abbrev-ref HEAD && git rev-parse HEAD && git status --short
+cd /opt/sb-router && git rev-parse --abbrev-ref HEAD && git rev-parse HEAD && git status --short
 systemctl status sb-router --no-pager       # SB router
 systemctl status nginx --no-pager           # nginx
 ```
@@ -192,7 +200,7 @@ systemctl --failed
 python3 --version && node --version
 
 # Git status
-cd /opt/energity/sb && git log --oneline -5
+cd /opt/energity/sb && git rev-parse --abbrev-ref HEAD && git rev-parse HEAD && git status --short
 
 # Device configuration
 cat /opt/energity/sb/device_controller/devices_config.yaml

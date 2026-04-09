@@ -1,7 +1,7 @@
 # 05 -- Infrastructure
 
 > Servers, Docker, databases, networking, deploy procedures, and backups.
-> Last updated: 2026-04-07
+> Last updated: 2026-04-09
 
 > **Credentials note**: All passwords and keys are `[REDACTED]`.
 > Actual values: `zadani/pristupy a servery/PGEERP_Knowledge_Base.md` (private OneDrive).
@@ -31,7 +31,7 @@ Servers 3 and 4 are part of the PGE ERP ecosystem (separate documentation).
 | SSH | `ssh root@pgepilot.cz` (ed25519 key) |
 | Firewall | iptables: SSH to containers whitelisted for specific IPs, fail2ban on port 22 |
 
-### Docker Containers (8 running, verified 2026-04-04)
+### Docker Containers (8 running, verified 2026-04-09)
 
 | Container | Ports (host) | SSH Port | Tech | Purpose |
 |-----------|-------------|----------|------|---------|
@@ -52,12 +52,24 @@ Servers 3 and 4 are part of the PGE ERP ecosystem (separate documentation).
 # Standard containers:
 ssh root@pgepilot.cz "docker exec -it pgepilot_service bash"
 ssh root@pgepilot.cz "docker exec -it pgepilot_worker1 bash"
-ssh root@pgepilot.cz "docker exec -it pgepilot_jobmanager bash"
+ssh root@pgepilot.cz "docker exec -it pgepilot_jobmanager sh"
 
-# Servicedesk (docker exec fails with OCI error -- use nsenter):
-SD_PID=$(ssh root@pgepilot.cz "docker inspect pgepilot_servicedesk --format '{{.State.Pid}}'")
-ssh root@pgepilot.cz "nsenter -t $SD_PID -m -u -i -n -p -- bash"
+# Servicedesk / frontend container:
+ssh root@pgepilot.cz "docker exec -it pgepilot_servicedesk sh"
 ```
+
+### Runtime Code State (verified 2026-04-09)
+
+| Runtime path | Git state | Notes |
+|--------------|-----------|-------|
+| `pgepilot_service:/var/www/html` | clean `main@b578bd8` | Matches GitHub `Holbytlo/pgepilot-service` `main` |
+| `pgepilot_worker1:/var/www/html` | dirty `main@22e7514` | Modified + untracked connector/task files, backup files, local runtime fork |
+| `pgepilot_worker2:/var/www/html` | dirty `main@22e7514` | Same drift pattern as worker1 |
+| `pgepilot_worker3:/var/www/html` | dirty `main@22e7514` | Same drift pattern as worker1 |
+| `pgepilot_jobmanager:/home/app` | `main@4346047` + untracked backups | `jobmanager.js.pre_cleanup`, `jobmanager.js.bak`, `jobmanager.jszaloha` present |
+| `pgepilot_servicedesk:/home/app2/pge-app` | dirty `main@aaeff13` | Live frontend source tree is older than GitHub `main`; served bundle currently `/assets/index-Dlia4a2K.js` |
+| `pgepilot_servicedesk:/home/app2/servicedesk` | clean `main@1c21bd4` | Admin UI checkout is clean |
+| `pgepilot_auth_srv:/app` | no visible git checkout | Runtime is a deploy artifact, not a git-auditable repo |
 
 ### Nginx Proxy Manager -- Domain Routing
 
@@ -185,7 +197,7 @@ ssh root@pgepilot.cz "docker exec pgepilot_service bash -c 'cd /var/www/html && 
 
 ### Worker Containers (docker cp -- no functional git)
 
-**IMPORTANT**: Workers have TWO code paths: `src/` and `wsrc/`. BOTH must match. Always deploy to ALL workers.
+**IMPORTANT**: Workers currently run an older local runtime fork (`main@22e7514`), not the clean `pgepilot-service` `main@b578bd8`. They also have TWO code paths: `src/` and `wsrc/`. BOTH must match. Always compare worker git status before assuming a service-side deploy is enough.
 
 ```bash
 # Deploy a single file to ALL workers (service + worker1 + worker2 + worker3)
@@ -201,15 +213,14 @@ ssh root@pgepilot.cz "
 
 ### Servicedesk/PGE App (docker cp + nsenter build)
 
-`docker exec` does NOT work for servicedesk (OCI error). Must use `nsenter`.
+`docker exec` with `sh` works on the current container. `nsenter` is optional, not required for a normal build.
 
 ```bash
 # 1. Copy file to container
 docker cp /tmp/Component.vue pgepilot_servicedesk:/home/app2/pge-app/src/views/Component.vue
 
-# 2. Build inside container via nsenter
-SD_PID=$(docker inspect pgepilot_servicedesk --format '{{.State.Pid}}')
-nsenter -t $SD_PID -m -u -i -n -p -- bash -c 'cd /home/app2/pge-app && npm run build'
+# 2. Build inside container
+docker exec pgepilot_servicedesk sh -lc 'cd /home/app2/pge-app && npm run build'
 
 # 3. Verify
 curl -s -o /dev/null -w '%{http_code}' http://localhost:3060
@@ -221,7 +232,7 @@ curl -s -o /dev/null -w '%{http_code}' http://localhost:3060
 ssh -J limited@ra-energity.cz -p 20002 root@127.0.0.1
 
 # Deploy
-cd /opt/energity/sb && git pull
+cd /opt/energity/sb && git switch devva && git pull
 systemctl restart energity-device-controller
 systemctl restart energity-comm-controller
 

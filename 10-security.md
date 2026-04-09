@@ -2,7 +2,7 @@
 
 > Security audit findings, known risks, hardening plan, software versions, and RBAC status.
 > Based on: `zadani/SECURITY_AUDIT_2026-04-03.md` (full 1025-line audit)
-> Last updated: 2026-04-04
+> Last updated: 2026-04-09
 
 ---
 
@@ -53,8 +53,8 @@
 | HIGH-08 | SB services on 0.0.0.0 | SB1 :3007, :3001 | health + rpc-client accessible from any interface |
 | HIGH-09 | SB web UI passwords hardcoded | SB1 app.py | admin1234, tech1234, user1234 in source |
 | HIGH-10 | Worker deploy via docker cp | pgepilot.cz | No version control on workers. Two code paths (src/ + wsrc/) |
-| HIGH-11 | sb-manager instability | VPS | 156 restarts in 4 days, undiagnosed |
-| HIGH-12 | GoodWe cache methods not in git | worker1/2/3 | 4 methods deployed locally, not committed |
+| HIGH-11 | sb-manager instability history | VPS | 156 historical restarts recorded in PM2. Current uptime is 10 days, but root cause remains undocumented |
+| HIGH-12 | Worker runtime fork not in git | worker1/2/3 | Workers still run `main@22e7514` with modified/untracked connector/task files; runtime is not reproducible from GitHub `main` |
 
 ---
 
@@ -112,7 +112,7 @@
 
 13. Docker volume mounts → persist container data
 14. Auth middleware → enable on all write endpoints
-15. Diagnose sb-manager → root cause 156 restarts
+15. Diagnose sb-manager → root cause of 156 historical restarts
 16. npm install Tailwind → remove CDN dependency
 17. Disable SSH PasswordAuthentication
 18. Create dedicated DB users (least privilege)
@@ -133,9 +133,9 @@ Implemented in PGE App:
 
 | Role | Access |
 |------|--------|
-| Admin | All pages: /predikce, /uzivatele, /alerty, full CRUD |
+| Admin | All current pages including `/uzivatele` and `/alerty`, full CRUD where implemented |
 | Operator | /alerty + standard views |
-| User | Dashboard, CP detail, charts, domains |
+| User | Dashboard, CP detail, charts, domains, instalace, nastaveni |
 
 API:
 - `GET /api/v2/users/{id}/grants`
@@ -146,7 +146,7 @@ Grants link users to specific Collection Points and Control Domains.
 
 ---
 
-## Firewall Status (verified 2026-04-04)
+## Firewall Status (verified 2026-04-09)
 
 ### pgepilot.cz
 - **iptables DOCKER-USER**: SSH (22xx) whitelisted for 5.252.43.55, 46.135.6.209. Port 3306 DROP from non-Docker. Port 5000 logged + allowed from pgeusers (188.245.255.117)

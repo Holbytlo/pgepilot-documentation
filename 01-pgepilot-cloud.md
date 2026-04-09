@@ -1,7 +1,7 @@
 # 01 -- PgePilot Cloud Platform
 
 > Cloud monitoring and control platform for photovoltaic installations.
-> Last updated: 2026-04-07
+> Last updated: 2026-04-09
 
 ---
 
@@ -15,7 +15,7 @@ PgePilot is a cloud-based monitoring platform that collects data from PV inverte
 | IP | 88.99.187.9 |
 | Provider | Hetzner (ARM64) |
 | Active plants | 35 collection points (17 GoodWe, 15 SolaX, 1 SmartBox); Task 29 collects 32 plants |
-| Docker containers | 8 (verified 2026-04-04) |
+| Docker containers | 8 (verified 2026-04-09) |
 | Databases | 8 (see [05-infrastructure.md](05-infrastructure.md)) |
 | Primary API | `/api/v2/*` on port 8400 |
 | Frontend | app.pgepilot.cz (Vue3, port 3060) |
@@ -52,7 +52,7 @@ JobManager --> POST /task to Worker1
 Worker1 --> calls GoodWe/SolaX API --> stores in DB
 ```
 
-### Task Definitions (verified 2026-04-07)
+### Task Definitions (verified 2026-04-09)
 
 | ID | Name | Active | Notes |
 |----|------|--------|-------|
@@ -251,23 +251,26 @@ New plant `VA_SB` (ID 202) registered as a SmartBox pull connector:
 
 | Repo | Container | Branch | Contents |
 |------|-----------|--------|----------|
-| Holbytlo/pgepilot-service | service + worker1 | main | PHP Slim4 API, TaskManager, DB migrations |
-| Holbytlo/pgepilot-js | jobmanager | main | Node.js job orchestrator; legacy scheduler block commented, production recurring work now anchored in DB task definitions |
-| Holbytlo/pgepilot-srv | auth_srv | main | Auth server (JWT, login) |
-| Holbytlo/pge-app | servicedesk (PM2 pge-app) | main | Vue3 frontend |
-| Holbytlo/sb | SB1: /opt/energity/sb | devva | Python SmartBox software |
-| Holbytlo/sb-manager | VPS: /opt/sb-manager | main | Node.js SB device management |
+| Holbytlo/pgepilot-service | `pgepilot_service` clean on `main@b578bd8`; workers 1/2/3 still run older `main@22e7514` with local drift | main | PHP Slim4 API, TaskManager, DB migrations |
+| Holbytlo/pgepilot-js | `pgepilot_jobmanager` in `/home/app`, `main@4346047`; recurring work is DB-backed via `task_definitions` | main | Node.js job orchestrator |
+| Holbytlo/pgepilot-srv | `pgepilot_auth_srv` runtime is `/app` deploy artifact; no git metadata visible in container | main | Auth server (JWT, login) |
+| Holbytlo/pge-app | `pgepilot_servicedesk:/home/app2/pge-app`, `main@aaeff13` plus local edits; live bundle currently serves `/assets/index-Dlia4a2K.js` | main | Vue3 frontend |
+| Holbytlo/servisdesk | `pgepilot_servicedesk:/home/app2/servicedesk`, clean `main@1c21bd4` | main | Admin UI |
+| Holbytlo/sb | SB1: `/opt/energity/sb`, clean `devva@be59807` | devva | Python SmartBox software |
+| Holbytlo/sb-manager | VPS: `/opt/sb-manager`, clean `main@5fd115b`, PM2 online with 156 historical restarts and current 10-day uptime | main | Node.js SB device management |
+| Holbytlo/sb-router | VPS: `/opt/sb-router`, clean `main@4c4a7ad`, systemd active since 2026-03-12 | main | Host-based router for SB tunnel subdomains |
 
 ---
 
 ## Known Issues
 
 - ~~GoodweSems OpenAPI token refresh broken~~ **FIXED** (2026-04-04) -- In-memory token cache + auto-retry on 100002 (commit `248351d`). All 32 plants now collected.
-- GoodWe cache methods (4 new) are local edits in worker1, **not committed to git** (session ended before deploy on 2026-04-04)
+- Worker1/2/3 are still **not synchronized with GitHub `main`**. All three run `main@22e7514` with modified/untracked connector, DataAdmin, TaskController, and backup files.
 - GoodweSemsWeb credentials updated: old account [REDACTED] was deactivated (code 100029), new account [REDACTED] is working for both CrossLogin (web) and OpenAPI (GetToken)
 - Legacy notes around `/scheduled_tasks` still appear in older docs; current production scheduling is DB-backed through `task_definitions`
 - Worker deploy uses `docker cp` (no functional git pull inside worker1)
-- Servicedesk `docker exec` does not work (OCI error) -- must use `nsenter`
+- `pge-app` runtime source tree is still older `aaeff13` plus live edits, while GitHub `main` is `05e61e0`
+- Older docs say servicedesk `docker exec` fails; current reality is that `docker exec pgepilot_servicedesk sh -lc '...'` works
 - Tailwind CSS loaded from CDN in PGE App (should be npm installed)
-- `sb-manager` on VPS has 155 restarts in 4 days (stability issue)
-- Latest commit on pgepilot-service main: `a862919` (pushed 2026-04-07, aligned with live production service state)
+- `sb-manager` remains a stability concern: PM2 still reports 156 historical restarts, even though current uptime is 10 days
+- Latest commit on `pgepilot-service` `main`: `b578bd8` (`fix: disable Solax setExportLimit dispatch`)

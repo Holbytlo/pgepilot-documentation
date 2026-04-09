@@ -1,7 +1,7 @@
 # 02 -- SmartBox / SBC Edge System
 
 > Edge computing platform for local inverter monitoring and control via Raspberry Pi devices.
-> Last updated: 2026-04-04
+> Last updated: 2026-04-09
 
 ---
 
@@ -38,6 +38,12 @@ SmartBox (SB) is an edge computing device (Raspberry Pi) installed at a customer
 | pgepilot-smartbox-sim | PM2 | 5001 | /opt/sbcsim | SmartBox simulator for development |
 | nginx | systemd | 80, 443 | -- | Reverse proxy, SSL termination |
 | sb-router | systemd | 9100 (localhost) | /opt/sb-router | Subdomain routing to SSH tunnels |
+
+### Runtime Snapshot (verified 2026-04-09)
+
+- `sb-manager`: clean `main@5fd115b`, PM2 online, 156 total restarts, current uptime 10 days
+- `sb-router`: clean `main@4c4a7ad`, systemd active since 2026-03-12
+- `pgepilot-smartbox-sim`: PM2 online on port 5001
 
 ### DNS Routing
 
@@ -82,6 +88,7 @@ GIT_SSH_COMMAND="ssh -i /home/limited/.ssh/githolbytlo -o IdentitiesOnly=yes" gi
 | Python | 3.13.5 (venv) |
 | Node.js | v20.19.2 |
 | Inverter | GoodWe ET+ at 192.168.0.70:502 (Modbus TCP) |
+| Git runtime | `/opt/energity/sb`, clean `devva@be59807` (verified 2026-04-09) |
 
 ### Access
 
@@ -128,6 +135,11 @@ SB1 (192.168.0.51)                 VPS (195.201.19.103)
 | nginx | 80, 8080 | 0.0.0.0 | nginx | Proxy to Flask web interface |
 
 **Warning**: `energity-health` and `energity-rpc-client` bind to 0.0.0.0 (should be 127.0.0.1).
+
+Observed on 2026-04-09:
+
+- `sb-ops-agent` is active and running from `/opt/energity/sb-ops-agent/server.mjs`
+- `sb-test-3000` and `sb-test-3001` are still in auto-restart loops
 
 ### Useful Commands
 
@@ -202,7 +214,7 @@ SQLite storage for sensor data with 1-day retention.
 - `sensor_data.db` -- SQLite database
 - Endpoints: `POST /sensor-data`, `GET /api/sensor-data/latest`, `GET /api/sensor-data/range`
 
-### 3. RPC Client (Port 3012)
+### 3. RPC Client (Port 3001)
 
 Communication with PgePilot Cloud via JSON-RPC 2.0 over HTTPS.
 
@@ -336,7 +348,7 @@ defaults -> TOU schedule -> dateTime overrides -> direct runtime command
 ## Known Issues
 
 - `sb-test-3000` and `sb-test-3001` are in a failing loop on SB1 (legacy test services -- should be stopped/disabled)
-- `sb-manager` on VPS has 155 restarts in 4 days (stability issue)
+- `sb-manager` on VPS has 156 historical restarts; it is currently online with a 10-day uptime, but the root cause is still unresolved
 - `energity-health` (:3007) and `energity-rpc-client` (:3001) bind to 0.0.0.0 (security risk)
 - Passwords hardcoded in `app.py` (web interface)
 - Modbus RTU driver lacks thread safety (only TCP is thread-safe)

@@ -1,11 +1,11 @@
 # 09 -- Development Roadmap
 
 > Current production state, completed milestones, and prioritized work items.
-> Last updated: 2026-04-07
+> Last updated: 2026-04-09
 
 ---
 
-## Production State (2026-04-04)
+## Production State (2026-04-09)
 
 | Component | Status | Details |
 |-----------|--------|---------|
@@ -13,14 +13,15 @@
 | pge_control DB | Production | 28 tables (+ sems_plant_discovery), 35 CP, 26 devices, 40 machines, 39 connectors, realtime sync |
 | pge_data DB | Production | 81 tables (power_1m, energy_15m, forecast) + OTE spot import table in service DB |
 | API v2 | Production | 36+ endpoints, JWT auth, forecast API, task API |
-| PGE App (web) | Production | Dashboard, CPDetail, Charts (aggregation), Alerts, Domains, Users, Instalace, Nastaveni |
+| PGE App (web) | Production (runtime drift) | Dashboard, CPDetail, Charts, Alerts, Domains, Users, Instalace, Nastaveni. Production source checkout is still `aaeff13` + local edits; GitHub `main` is `05e61e0`. |
 | Forecast system | Production | PV (forecast.solar Pro), load (profiling), weather (Open-Meteo), adaptive correction |
-| JobManager scheduler | Production | Current recurring runtime is DB-backed through `task_definitions`; legacy `pgepilot-js` scheduler block stays commented on current `main` |
+| JobManager scheduler | Production | Current recurring runtime is DB-backed through `task_definitions`; legacy `pgepilot-js` scheduler block stays commented on current `main`. Runtime is `main@4346047` plus backup files. |
 | SmartBox SB1 | Production (monitoring) | 4 microservices, Modbus polling, RPC working, 2139 rpc_kv records. Plant VA_SB (ID 202) registered as pull connector. |
 | SmartBox TOU | In progress | Spec ready, not yet implemented on real SB |
-| sb-manager | Production (unstable) | 155 restarts in 4 days |
+| sb-manager | Production (historically unstable) | 156 total restarts recorded by PM2; currently online with 10-day uptime |
 | Email API | Production | 5 profiles (servis, automat, technika, obchod, info) |
 | Connector self-governance | Production | Budget trait, cache, enabled flags |
+| Worker runtime sync | **Not synchronized** | worker1/2/3 still run `main@22e7514` with local modified/untracked files, while GitHub `pgepilot-service` `main` is `b578bd8` |
 
 ---
 
@@ -58,19 +59,19 @@
 | GoodweSemsWeb credentials | 04-04 | Old account [REDACTED] deactivated (100029), new account [REDACTED] working |
 | OTE PT15M importer | 04-07 | `GET /ote/import` added in service, stores into `ote_day_ahead_prices` |
 | OTE tasks 30/31 | 04-07 | JobManager-verified imports for today (`00:05`) and today+tomorrow (`12:10`) |
-| Git push | 04-07 audit | `pgepilot-service` `main` aligned to live production in commit `a862919`; `pge-app` `main` includes login-loop fix `e2a0cc3` |
+| Git audit refresh | 04-09 | `pgepilot-service` `main` now at `b578bd8`; `pge-app` `main` now at `05e61e0`; runtime drift remains in workers and in the live `pge-app` checkout |
 
 ---
 
-## Unfinished / Handoff Items (from 2026-04-04 session)
+## Unfinished / Handoff Items
 
 Items left incomplete from the last development session. Start here before new work.
 
 | # | Item | Status | Detail |
 |---|------|--------|--------|
-| H1 | **Deploy GoodweSems.php cache** | NOT DEPLOYED | 4 new cache methods (GetDeviceAttribute, getInverterEnergyUsedDetail, GetInverterPowerV1, GetPlantPower) exist in /tmp/GoodweSems.php on local Mac. Need docker cp to all 4 containers (service + worker1/2/3), both src/ and wsrc/ paths. Then git commit + push. |
-| H2 | **Deploy SolaxCloud.php getMpptInfo cache** | NOT DEPLOYED | Local file /tmp/SolaxCloud.php. Same deploy procedure. |
-| H3 | **GoodweSemsWeb.php needs ConnectorBudgetTrait** | NOT STARTED | Separate class for web scraping GoodWe history. Has 4 read methods without cache or budget checks. |
+| H1 | **Synchronize worker1/2/3 with git** | BLOCKED BY RUNTIME DRIFT | All three workers are still on `22e7514` with modified/untracked files. Need backup + diff + clean redeploy from `pgepilot-service` `main`. |
+| H2 | **Synchronize live PGE App checkout with git** | NOT DONE | `pgepilot_servicedesk:/home/app2/pge-app` is still `aaeff13` + local edits, while GitHub `main` is `05e61e0`. |
+| H3 | **Prove auth runtime provenance** | UNKNOWN | `pgepilot_auth_srv` runs from `/app` with no visible git checkout. Need to link it to a repo/image source of truth. |
 | H4 | ~~Create tpl_power_bf table~~ | **DONE** | tpl_power_1m created (57 register + 5 computed columns). 17 GoodWe plant tables created. Task 18 rewritten to use power_1m. |
 | H5 | **Activate task_definitions 20-22** | READY | Sync tasks migrated from crontab but currently disabled. Need to verify they work, then enable. |
 | H6 | **SB1 poll warning** | LOW | Communication controller logs poll as "failed" (ok=None). Either server adds `ok: true` to smartboxPoll response, or fix comm controller parsing. |
@@ -122,7 +123,7 @@ Items left incomplete from the last development session. Start here before new w
 | 3.7 | Auth middleware | Enable on all write endpoints | Medium |
 | 3.8 | Dead proxy entries | Remove sicak, calc, nab, taskmanager from NPM | Small |
 | 3.9 | SB1 failing services | Stop sb-test-3000/3001 | Small |
-| 3.10 | sb-manager stability | Diagnose 155 restarts in 4 days | Medium |
+| 3.10 | sb-manager stability | Diagnose 156 historical restarts and keep uptime stable | Medium |
 | 3.11 | Cron monitoring | Alert when sync fails | Medium |
 | 3.12 | plant_config | Fill in for all plants (many missing) | Small |
 

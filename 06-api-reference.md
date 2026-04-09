@@ -1,7 +1,7 @@
 # 06 -- API Reference
 
 > All API endpoints: PgePilot v2, legacy v1, Email, RPC, JobManager, and external connectors.
-> Last updated: 2026-04-07
+> Last updated: 2026-04-09
 
 ---
 
@@ -22,7 +22,8 @@ Use the token in all subsequent requests:
 Authorization: Bearer <token>
 ```
 
-Token is issued by `pgepilot_auth_srv` (port 4000).
+Current production login goes through `pgepilot-service` `POST /api/v2/auth/login`, which issues the JWT used by `pge-app`.
+`pgepilot_auth_srv` still exists as a parallel legacy auth component, but it is not the only auth path in the stack anymore.
 
 ---
 
@@ -117,7 +118,7 @@ Still running on the same service container. Used by older clients.
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/login` | POST | Auth via auth_srv:4000 -> JWT |
+| `/login` | POST | Legacy login path; mixed transitional auth flow, not the primary `pge-app` login anymore |
 | `/UserByLogin` | GET | User info |
 | `/getCustomerPlants` | GET | Plant IDs for customer |
 | `/getPlantInfo` | GET | Plant detail |
