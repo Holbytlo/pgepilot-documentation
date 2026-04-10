@@ -1,11 +1,11 @@
 # 09 -- Development Roadmap
 
 > Current production state, completed milestones, and prioritized work items.
-> Last updated: 2026-04-09
+> Last updated: 2026-04-10
 
 ---
 
-## Production State (2026-04-09)
+## Production State (2026-04-10)
 
 | Component | Status | Details |
 |-----------|--------|---------|
@@ -13,15 +13,15 @@
 | pge_control DB | Production | 28 tables (+ sems_plant_discovery), 35 CP, 26 devices, 40 machines, 39 connectors, realtime sync |
 | pge_data DB | Production | 81 tables (power_1m, energy_15m, forecast) + OTE spot import table in service DB |
 | API v2 | Production | 36+ endpoints, JWT auth, forecast API, task API |
-| PGE App (web) | Production (runtime drift) | Dashboard, CPDetail, Charts, Alerts, Domains, Users, Instalace, Nastaveni. Production source checkout is still `aaeff13` + local edits; GitHub `main` is `05e61e0`. |
+| PGE App (web) | Production (synchronized) | Dashboard, CPDetail, Charts, Alerts, Domains, Users, Instalace, Nastaveni. Production source checkout is clean `main@05e61e0`; live bundle serves `/assets/index-Bnf_bCjw.js`. |
 | Forecast system | Production | PV (forecast.solar Pro), load (profiling), weather (Open-Meteo), adaptive correction |
-| JobManager scheduler | Production | Current recurring runtime is DB-backed through `task_definitions`; legacy `pgepilot-js` scheduler block stays commented on current `main`. Runtime is `main@4346047` plus backup files. |
+| JobManager scheduler | Production | Current recurring runtime is DB-backed through `task_definitions`; legacy `pgepilot-js` scheduler block stays commented on current `main`. Runtime is clean `main@4346047`. |
 | SmartBox SB1 | Production (monitoring) | 4 microservices, Modbus polling, RPC working, 2139 rpc_kv records. Plant VA_SB (ID 202) registered as pull connector. |
 | SmartBox TOU | In progress | Spec ready, not yet implemented on real SB |
 | sb-manager | Production (historically unstable) | 156 total restarts recorded by PM2; currently online with 10-day uptime |
 | Email API | Production | 5 profiles (servis, automat, technika, obchod, info) |
 | Connector self-governance | Production | Budget trait, cache, enabled flags |
-| Worker runtime sync | **Not synchronized** | worker1/2/3 still run `main@22e7514` with local modified/untracked files, while GitHub `pgepilot-service` `main` is `b578bd8` |
+| Worker runtime sync | **DONE** | worker1/2/3 were backed up and reset to clean `main@b578bd8` on 2026-04-10 |
 
 ---
 
@@ -59,7 +59,8 @@
 | GoodweSemsWeb credentials | 04-04 | Old account [REDACTED] deactivated (100029), new account [REDACTED] working |
 | OTE PT15M importer | 04-07 | `GET /ote/import` added in service, stores into `ote_day_ahead_prices` |
 | OTE tasks 30/31 | 04-07 | JobManager-verified imports for today (`00:05`) and today+tomorrow (`12:10`) |
-| Git audit refresh | 04-09 | `pgepilot-service` `main` now at `b578bd8`; `pge-app` `main` now at `05e61e0`; runtime drift remains in workers and in the live `pge-app` checkout |
+| Git audit refresh | 04-09 to 04-10 | `pgepilot-service` `main` at `b578bd8`, `pge-app` `main` at `05e61e0`; production workers, jobmanager cleanup, and live `pge-app` checkout were resynchronized. Auth runtime provenance remains unresolved. |
+| Runtime resync cleanup | 04-10 | worker1/2/3 reset to `main@b578bd8`, `pge-app` reset + rebuilt to `main@05e61e0`, jobmanager untracked backups removed during cleanup. Worker pre-sync backups live under `/root/runtime-sync-backups/2026-04-10` |
 
 ---
 
@@ -69,8 +70,8 @@ Items left incomplete from the last development session. Start here before new w
 
 | # | Item | Status | Detail |
 |---|------|--------|--------|
-| H1 | **Synchronize worker1/2/3 with git** | BLOCKED BY RUNTIME DRIFT | All three workers are still on `22e7514` with modified/untracked files. Need backup + diff + clean redeploy from `pgepilot-service` `main`. |
-| H2 | **Synchronize live PGE App checkout with git** | NOT DONE | `pgepilot_servicedesk:/home/app2/pge-app` is still `aaeff13` + local edits, while GitHub `main` is `05e61e0`. |
+| H1 | ~~Synchronize worker1/2/3 with git~~ | **DONE** | Backups stored under `/root/runtime-sync-backups/2026-04-10`, then all three workers reset to clean `main@b578bd8`. |
+| H2 | ~~Synchronize live PGE App checkout with git~~ | **DONE** | `pgepilot_servicedesk:/home/app2/pge-app` is now clean `main@05e61e0` and rebuilt in place. |
 | H3 | **Prove auth runtime provenance** | UNKNOWN | `pgepilot_auth_srv` runs from `/app` with no visible git checkout. Need to link it to a repo/image source of truth. |
 | H4 | ~~Create tpl_power_bf table~~ | **DONE** | tpl_power_1m created (57 register + 5 computed columns). 17 GoodWe plant tables created. Task 18 rewritten to use power_1m. |
 | H5 | **Activate task_definitions 20-22** | READY | Sync tasks migrated from crontab but currently disabled. Need to verify they work, then enable. |
@@ -86,8 +87,8 @@ Items left incomplete from the last development session. Start here before new w
 
 | # | Task | Detail | Effort |
 |---|------|--------|--------|
-| 1.1 | ~~Installation page~~ | **DONE** on current `pge-app` `main` (`aaeff13`) | ~~Medium~~ |
-| 1.2 | ~~Settings page~~ | **DONE** on current `pge-app` `main` (`aaeff13`) | ~~Medium~~ |
+| 1.1 | ~~Installation page~~ | **DONE** on current `pge-app` `main` (`05e61e0`) | ~~Medium~~ |
+| 1.2 | ~~Settings page~~ | **DONE** on current `pge-app` `main` (`05e61e0`) | ~~Medium~~ |
 | 1.3 | Password change | Missing endpoint + UI | Small |
 | 1.4 | ~~Sync crons to JobManager~~ | **DONE** -- migrated to task_definitions 20-22 (currently disabled, need activation) | ~~Medium~~ |
 | 1.5 | PV forecast for all CPs | Add pv_forecast_config for more plants (currently only VA + Kder Veltrusy) | Medium |

@@ -1,7 +1,7 @@
 # 05 -- Infrastructure
 
 > Servers, Docker, databases, networking, deploy procedures, and backups.
-> Last updated: 2026-04-09
+> Last updated: 2026-04-10
 
 > **Credentials note**: All passwords and keys are `[REDACTED]`.
 > Actual values: `zadani/pristupy a servery/PGEERP_Knowledge_Base.md` (private OneDrive).
@@ -31,7 +31,7 @@ Servers 3 and 4 are part of the PGE ERP ecosystem (separate documentation).
 | SSH | `ssh root@pgepilot.cz` (ed25519 key) |
 | Firewall | iptables: SSH to containers whitelisted for specific IPs, fail2ban on port 22 |
 
-### Docker Containers (8 running, verified 2026-04-09)
+### Docker Containers (8 running, verified 2026-04-10)
 
 | Container | Ports (host) | SSH Port | Tech | Purpose |
 |-----------|-------------|----------|------|---------|
@@ -58,16 +58,16 @@ ssh root@pgepilot.cz "docker exec -it pgepilot_jobmanager sh"
 ssh root@pgepilot.cz "docker exec -it pgepilot_servicedesk sh"
 ```
 
-### Runtime Code State (verified 2026-04-09)
+### Runtime Code State (verified 2026-04-10)
 
 | Runtime path | Git state | Notes |
 |--------------|-----------|-------|
 | `pgepilot_service:/var/www/html` | clean `main@b578bd8` | Matches GitHub `Holbytlo/pgepilot-service` `main` |
-| `pgepilot_worker1:/var/www/html` | dirty `main@22e7514` | Modified + untracked connector/task files, backup files, local runtime fork |
-| `pgepilot_worker2:/var/www/html` | dirty `main@22e7514` | Same drift pattern as worker1 |
-| `pgepilot_worker3:/var/www/html` | dirty `main@22e7514` | Same drift pattern as worker1 |
-| `pgepilot_jobmanager:/home/app` | `main@4346047` + untracked backups | `jobmanager.js.pre_cleanup`, `jobmanager.js.bak`, `jobmanager.jszaloha` present |
-| `pgepilot_servicedesk:/home/app2/pge-app` | dirty `main@aaeff13` | Live frontend source tree is older than GitHub `main`; served bundle currently `/assets/index-Dlia4a2K.js` |
+| `pgepilot_worker1:/var/www/html` | clean `main@b578bd8` | Resynchronized from GitHub `main` on 2026-04-10 after host-side backup |
+| `pgepilot_worker2:/var/www/html` | clean `main@b578bd8` | Resynchronized from GitHub `main` on 2026-04-10 |
+| `pgepilot_worker3:/var/www/html` | clean `main@b578bd8` | Resynchronized from GitHub `main` on 2026-04-10 |
+| `pgepilot_jobmanager:/home/app` | clean `main@4346047` | Runtime cleanup removed untracked `jobmanager.js.bak` / `jobmanager.js.pre_cleanup`; tracked `jobmanager.jszaloha` remains in repo |
+| `pgepilot_servicedesk:/home/app2/pge-app` | clean `main@05e61e0` | Live frontend source tree now matches GitHub `main`; served bundle currently `/assets/index-Bnf_bCjw.js` |
 | `pgepilot_servicedesk:/home/app2/servicedesk` | clean `main@1c21bd4` | Admin UI checkout is clean |
 | `pgepilot_auth_srv:/app` | no visible git checkout | Runtime is a deploy artifact, not a git-auditable repo |
 
@@ -190,30 +190,39 @@ MariaDB running on host (not in Docker). Connection: `pgepilot.cz:3306`, user: `
 
 ## Deploy Procedures
 
-### Service Container (git pull)
+### Service Container (git sync)
 ```bash
-ssh root@pgepilot.cz "docker exec pgepilot_service bash -c 'cd /var/www/html && git pull'"
+ssh root@pgepilot.cz "docker exec pgepilot_service bash -lc 'cd /var/www/html && git fetch origin main && git checkout -B main origin/main && git reset --hard origin/main && git clean -fd'"
 ```
 
-### Worker Containers (docker cp -- no functional git)
+### Worker Containers (git sync from host)
 
-**IMPORTANT**: Workers currently run an older local runtime fork (`main@22e7514`), not the clean `pgepilot-service` `main@b578bd8`. They also have TWO code paths: `src/` and `wsrc/`. BOTH must match. Always compare worker git status before assuming a service-side deploy is enough.
+Workers are currently clean on `main@b578bd8`. The practical limitation is credentialing: containers do not keep the GitHub SSH key permanently, so host-side sync temporarily injects the key, fetches, resets, then deletes the key again.
 
 ```bash
-# Deploy a single file to ALL workers (service + worker1 + worker2 + worker3)
-FILE="src/Specific/Connectors/GoodweSems.php"
+# Clean sync worker1/2/3 from GitHub main
 ssh root@pgepilot.cz "
-  for c in pgepilot_service pgepilot_worker1 pgepilot_worker2 pgepilot_worker3; do
-    docker cp pgepilot_service:/var/www/html/$FILE /tmp/deploy_file
-    docker cp /tmp/deploy_file \$c:/var/www/html/$FILE
-    docker cp /tmp/deploy_file \$c:/var/www/html/w${FILE}  # wsrc path
+  for c in pgepilot_worker1 pgepilot_worker2 pgepilot_worker3; do
+    docker cp /root/.ssh/githolbytlo \$c:/tmp/githolbytlo
+    docker exec \$c sh -lc '
+      chmod 600 /tmp/githolbytlo &&
+      cd /var/www/html &&
+      GIT_SSH_COMMAND=\"ssh -i /tmp/githolbytlo -o IdentitiesOnly=yes\" git fetch origin main &&
+      git checkout -B main origin/main &&
+      git reset --hard origin/main &&
+      git clean -fd &&
+      rm -f /tmp/githolbytlo
+    '
   done
 "
 ```
 
+`docker cp` is still possible for emergency one-file hotfixes, but after any live patch the matching git commit should land in GitHub and the runtime should be reset back to a clean checkout.
+
 ### Servicedesk/PGE App (docker cp + nsenter build)
 
 `docker exec` with `sh` works on the current container. `nsenter` is optional, not required for a normal build.
+Current production checkout is clean `main@05e61e0` and serves `/assets/index-Bnf_bCjw.js`.
 
 ```bash
 # 1. Copy file to container

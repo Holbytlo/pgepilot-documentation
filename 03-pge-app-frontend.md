@@ -1,7 +1,7 @@
 # 03 -- PGE App (Web Frontend)
 
 > Vue 3 single-page application for PV installation monitoring at app.pgepilot.cz.
-> Last updated: 2026-04-09
+> Last updated: 2026-04-10
 
 ---
 
@@ -15,8 +15,9 @@ PGE App is a client-facing Vue 3 SPA for monitoring PV installations. It runs al
 | Port | 3060 |
 | PM2 process | pge-app (id 2) |
 | Container | pgepilot_servicedesk |
-| Git repo | Holbytlo/pge-app (GitHub `main` = `05e61e0`; production source checkout currently `aaeff13` + local edits) |
+| Git repo | Holbytlo/pge-app (GitHub `main` = `05e61e0`; production source checkout is now clean on the same commit) |
 | Tech stack | Vue 3 + TypeScript + Vite 8 + Tailwind CSS (CDN) + Chart.js 4 (CDN) |
+| Live bundle | `/assets/index-Bnf_bCjw.js` + `/assets/index-B2ol9MGH.css` (verified 2026-04-10) |
 
 There are two apps in the servicedesk container:
 
@@ -116,6 +117,8 @@ Auth: JWT token stored in localStorage, sent as `Authorization: Bearer <token>`.
 
 ## Build and Deploy
 
+Current production checkout inside `pgepilot_servicedesk` is clean on `main@05e61e0`.
+
 ```bash
 # Development (Vite dev server with proxy)
 cd /home/app2/pge-app && npm run dev
@@ -178,4 +181,3 @@ docker exec pgepilot_servicedesk sh -lc 'cd /home/app2/pge-app && npm run build'
 - Tailwind CSS loaded from CDN (should use `npm install tailwindcss` for production)
 - Chart.js also from CDN
 - Older notes mention `/predikce` and `Forecast.vue`, but that route/component is not present on current `main`
-- Production source tree inside `pgepilot_servicedesk` is still `main@aaeff13` plus local edits and generated files; it is not a clean checkout of GitHub `main`

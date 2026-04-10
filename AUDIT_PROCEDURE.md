@@ -2,19 +2,19 @@
 
 > Step-by-step guide for verifying real server state against documentation.
 > Use this when updating docs or onboarding to a new session.
-> Last updated: 2026-04-09
+> Last updated: 2026-04-10
 
 ---
 
 ## Prerequisites
 
 ```bash
-# SSH key setup (from local machine)
-cp "zadani/pristupy a servery/id_ed25519" /tmp/pge_ssh_key
+# SSH key setup (from current workspace)
+cp "secure-access/original-pristupy-a-servery/id_ed25519" /tmp/pge_ssh_key
 chmod 600 /tmp/pge_ssh_key
 
 # GitHub SSH key (for git push)
-cp "zadani/pristupy a servery/githolbytlo" /tmp/githolbytlo
+cp "secure-access/ssh/githolbytlo" /tmp/githolbytlo
 chmod 600 /tmp/githolbytlo
 ```
 

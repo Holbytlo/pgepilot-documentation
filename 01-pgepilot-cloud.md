@@ -1,7 +1,7 @@
 # 01 -- PgePilot Cloud Platform
 
 > Cloud monitoring and control platform for photovoltaic installations.
-> Last updated: 2026-04-09
+> Last updated: 2026-04-10
 
 ---
 
@@ -15,7 +15,7 @@ PgePilot is a cloud-based monitoring platform that collects data from PV inverte
 | IP | 88.99.187.9 |
 | Provider | Hetzner (ARM64) |
 | Active plants | 35 collection points (17 GoodWe, 15 SolaX, 1 SmartBox); Task 29 collects 32 plants |
-| Docker containers | 8 (verified 2026-04-09) |
+| Docker containers | 8 (verified 2026-04-10) |
 | Databases | 8 (see [05-infrastructure.md](05-infrastructure.md)) |
 | Primary API | `/api/v2/*` on port 8400 |
 | Frontend | app.pgepilot.cz (Vue3, port 3060) |
@@ -251,10 +251,10 @@ New plant `VA_SB` (ID 202) registered as a SmartBox pull connector:
 
 | Repo | Container | Branch | Contents |
 |------|-----------|--------|----------|
-| Holbytlo/pgepilot-service | `pgepilot_service` clean on `main@b578bd8`; workers 1/2/3 still run older `main@22e7514` with local drift | main | PHP Slim4 API, TaskManager, DB migrations |
-| Holbytlo/pgepilot-js | `pgepilot_jobmanager` in `/home/app`, `main@4346047`; recurring work is DB-backed via `task_definitions` | main | Node.js job orchestrator |
+| Holbytlo/pgepilot-service | `pgepilot_service` plus workers 1/2/3 are clean on `main@b578bd8` | main | PHP Slim4 API, TaskManager, DB migrations |
+| Holbytlo/pgepilot-js | `pgepilot_jobmanager` in `/home/app`, clean `main@4346047`; recurring work is DB-backed via `task_definitions` | main | Node.js job orchestrator |
 | Holbytlo/pgepilot-srv | `pgepilot_auth_srv` runtime is `/app` deploy artifact; no git metadata visible in container | main | Auth server (JWT, login) |
-| Holbytlo/pge-app | `pgepilot_servicedesk:/home/app2/pge-app`, `main@aaeff13` plus local edits; live bundle currently serves `/assets/index-Dlia4a2K.js` | main | Vue3 frontend |
+| Holbytlo/pge-app | `pgepilot_servicedesk:/home/app2/pge-app`, clean `main@05e61e0`; live bundle currently serves `/assets/index-Bnf_bCjw.js` | main | Vue3 frontend |
 | Holbytlo/servisdesk | `pgepilot_servicedesk:/home/app2/servicedesk`, clean `main@1c21bd4` | main | Admin UI |
 | Holbytlo/sb | SB1: `/opt/energity/sb`, clean `devva@be59807` | devva | Python SmartBox software |
 | Holbytlo/sb-manager | VPS: `/opt/sb-manager`, clean `main@5fd115b`, PM2 online with 156 historical restarts and current 10-day uptime | main | Node.js SB device management |
@@ -265,11 +265,9 @@ New plant `VA_SB` (ID 202) registered as a SmartBox pull connector:
 ## Known Issues
 
 - ~~GoodweSems OpenAPI token refresh broken~~ **FIXED** (2026-04-04) -- In-memory token cache + auto-retry on 100002 (commit `248351d`). All 32 plants now collected.
-- Worker1/2/3 are still **not synchronized with GitHub `main`**. All three run `main@22e7514` with modified/untracked connector, DataAdmin, TaskController, and backup files.
 - GoodweSemsWeb credentials updated: old account [REDACTED] was deactivated (code 100029), new account [REDACTED] is working for both CrossLogin (web) and OpenAPI (GetToken)
 - Legacy notes around `/scheduled_tasks` still appear in older docs; current production scheduling is DB-backed through `task_definitions`
-- Worker deploy uses `docker cp` (no functional git pull inside worker1)
-- `pge-app` runtime source tree is still older `aaeff13` plus live edits, while GitHub `main` is `05e61e0`
+- Workers were resynchronized with GitHub `main` on 2026-04-10, but future git-based redeploys still require temporary host-side SSH key injection because the containers do not keep GitHub credentials permanently
 - Older docs say servicedesk `docker exec` fails; current reality is that `docker exec pgepilot_servicedesk sh -lc '...'` works
 - Tailwind CSS loaded from CDN in PGE App (should be npm installed)
 - `sb-manager` remains a stability concern: PM2 still reports 156 historical restarts, even though current uptime is 10 days

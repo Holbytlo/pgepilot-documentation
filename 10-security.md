@@ -2,7 +2,7 @@
 
 > Security audit findings, known risks, hardening plan, software versions, and RBAC status.
 > Based on: `zadani/SECURITY_AUDIT_2026-04-03.md` (full 1025-line audit)
-> Last updated: 2026-04-09
+> Last updated: 2026-04-10
 
 ---
 
@@ -16,6 +16,8 @@
 | Authentication & authorization | 2 | 3 | 2 | 0 |
 | Configuration | 1 | 2 | 3 | 1 |
 | **TOTAL** | **13** | **12** | **10** | **2** |
+
+Some findings below are baseline audit items from 2026-04-03 and now include mitigation notes where the runtime has already been cleaned up.
 
 ---
 
@@ -52,9 +54,9 @@
 | HIGH-07 | **Expiring SSL certs** | VPS wildcard | *.ra-energity.cz expires 2026-06-06 (63 days) |
 | HIGH-08 | SB services on 0.0.0.0 | SB1 :3007, :3001 | health + rpc-client accessible from any interface |
 | HIGH-09 | SB web UI passwords hardcoded | SB1 app.py | admin1234, tech1234, user1234 in source |
-| HIGH-10 | Worker deploy via docker cp | pgepilot.cz | No version control on workers. Two code paths (src/ + wsrc/) |
+| HIGH-10 | Worker redeploy depends on host-side SSH key injection or manual `docker cp` | pgepilot.cz | Runtime can be kept in sync, but the container image does not carry persistent GitHub credentials, so redeploy is still operationally fragile |
 | HIGH-11 | sb-manager instability history | VPS | 156 historical restarts recorded in PM2. Current uptime is 10 days, but root cause remains undocumented |
-| HIGH-12 | Worker runtime fork not in git | worker1/2/3 | Workers still run `main@22e7514` with modified/untracked connector/task files; runtime is not reproducible from GitHub `main` |
+| HIGH-12 | Worker runtime fork not in git (mitigated 2026-04-10) | worker1/2/3 | Workers were backed up and reset to clean `main@b578bd8`; keep audit guardrails in place so drift does not return |
 
 ---
 
