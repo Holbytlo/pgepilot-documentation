@@ -35,6 +35,7 @@ cs/08-architecture-overview.md   <-- Architektura systemu a datove toky
 cs/09-development-roadmap.md     <-- Aktualni stav a priority
 cs/10-security.md                <-- Znama rizika a plan zabezpeceni
 cs/11-email-api.md               <-- Email API reference
+cs/16-current-handoff.md         <-- Kratky handoff pro dalsi chat/okno
 ```
 
 ---
@@ -46,6 +47,7 @@ cs/11-email-api.md               <-- Email API reference
 - **Pracujete na webove app?** Zacnete s `03`, pak `06` (API).
 - **Potrebujete infrastrukturu?** Cti `05`.
 - **Potrebujete velky obraz?** Cti `08` (architektura), pak `09` (roadmapa).
+- **Navazujete z jineho chatu/okna?** Cti nejdriv `16-current-handoff.md`, pak otevri uvedene soubory a prikazy.
 - **Bezpecnostni audit?** Cti `10`.
 
 ---

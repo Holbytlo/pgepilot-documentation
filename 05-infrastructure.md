@@ -62,7 +62,7 @@ ssh root@pgepilot.cz "docker exec -it pgepilot_servicedesk sh"
 
 | Runtime path | Git state | Notes |
 |--------------|-----------|-------|
-| `pgepilot_service:/var/www/html` | clean `main@da784a6` | SmartBox local-auth middleware hotfix deployed 2026-04-12; `pgepilot-service` now serves legacy-compatible SmartBox auth endpoints directly |
+| `pgepilot_service:/var/www/html` | clean `main@da784a6` | SmartBox local-auth middleware hotfix deployed 2026-04-12; service is now one commit ahead of workers 1/2/3 (`a04e0ba`) |
 | `pgepilot_worker1:/var/www/html` | clean `main@a04e0ba` | Resynchronized from GitHub `main` on 2026-04-12 |
 | `pgepilot_worker2:/var/www/html` | clean `main@a04e0ba` | Resynchronized from GitHub `main` on 2026-04-12 |
 | `pgepilot_worker3:/var/www/html` | clean `main@a04e0ba` | Resynchronized from GitHub `main` on 2026-04-12 |

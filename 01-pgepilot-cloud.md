@@ -252,7 +252,7 @@ New plant `VA_SB` (ID 202) registered as a SmartBox pull connector:
 
 | Repo | Container | Branch | Contents |
 |------|-----------|--------|----------|
-| Holbytlo/pgepilot-service | `pgepilot_service` plus workers 1/2/3 are clean on `main@a04e0ba` | main | PHP Slim4 API, TaskManager, DB migrations |
+| Holbytlo/pgepilot-service | `pgepilot_service` is on `main@da784a6`, while workers 1/2/3 remain on `main@a04e0ba` | main | PHP Slim4 API, TaskManager, DB migrations |
 | Holbytlo/pgepilot-js | `pgepilot_jobmanager` in `/home/app`, clean `main@4346047`; recurring work is DB-backed via `task_definitions` | main | Node.js job orchestrator |
 | Holbytlo/pgepilot-srv | `pgepilot_auth_srv` runtime is `/app` deploy artifact; no git metadata visible in container | main | Auth server (JWT, login) |
 | Holbytlo/pge-app | `pgepilot_servicedesk:/home/app2/pge-app`, clean `main@3d7e6bb`; live bundle currently serves `/assets/index-lGjKNcFm.js` | main | Vue3 frontend |
@@ -272,4 +272,5 @@ New plant `VA_SB` (ID 202) registered as a SmartBox pull connector:
 - Older docs say servicedesk `docker exec` fails; current reality is that `docker exec pgepilot_servicedesk sh -lc '...'` works
 - Tailwind CSS loaded from CDN in PGE App (should be npm installed)
 - `sb-manager` remains a stability concern: PM2 still reports 156 historical restarts, even though current uptime is 10 days
-- Latest commit on `pgepilot-service` `main`: `a04e0ba` (`Route history pipeline through canonical pge_data datasets`)
+- Latest local `pgepilot-service` `main` commit: `da784a6` (`fix: bind smartbox local auth middleware helper`)
+- Production note: workers are still on `a04e0ba` (`Route history pipeline through canonical pge_data datasets`)

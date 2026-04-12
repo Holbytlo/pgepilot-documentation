@@ -25,6 +25,7 @@
 | 12 | [12-forecasting.md](12-forecasting.md) | PV forecast, load forecast, weather, adaptive correction, planned Open-Meteo physical model |
 | 13 | [13-connector-cache.md](13-connector-cache.md) | Connector self-governance: cache strategy, budget/rate limits, enable flags, ConnectorBudgetTrait |
 | 14 | [14-smartbox-provisioning.md](14-smartbox-provisioning.md) | Kompletni provisioning noveho SB: flash, bootstrap, konfigurace, overeni, checklist |
+| 16 | [16-current-handoff.md](16-current-handoff.md) | Live handoff: current runtime SHAs, open failures, where to look next, and exact production checks |
 | -- | [AUDIT_PROCEDURE.md](AUDIT_PROCEDURE.md) | Step-by-step server audit commands for verifying docs against reality |
 
 ## How to Use
@@ -35,6 +36,7 @@
 - **Working on the web app?** Start with `03`, then `06` (API).
 - **Need infrastructure details?** Read `05`.
 - **Need the big picture?** Read `08` (architecture), then `09` (roadmap).
+- **Continuing from another chat/window?** Read `16` first, then jump into the listed files and commands.
 - **Security audit?** Read `10`.
 
 ## Credential Policy

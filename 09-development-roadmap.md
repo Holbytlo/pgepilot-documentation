@@ -74,6 +74,7 @@
 | History usage resolver + energy lineage | 04-12 | API detail now exposes `history_usage_options`; `/history` + `/energy-summary` accept `usage`; energy aggregation prefers `power_1m`, falls back to `power_rt`, and stores source lineage metadata |
 | History pipeline cutover | 04-12 | GoodWe backfill writes canonical `pge_data.{code}_power_1m`, SmartBox `smartboxSendData` writes canonical `power_1m` + reported `energy_15m`, history policy points to `power_1m`, and `power_bf` is now primarily a reporting profile resolved over canonical history |
 | Production deploy of history cutover | 04-12 | `pgepilot_service` + workers 1/2/3 synced to `a04e0ba`, migration `009_history_lineage_and_policy_cutover.sql` applied, `pge-app` synced to `3d7e6bb`, rebuilt, and PM2-restarted |
+| Service-only auth/helper follow-up | 04-12 | `pgepilot_service` later advanced to `da784a6` (`fix: bind smartbox local auth middleware helper`). Workers remain on `a04e0ba`, so runtime is temporarily split. |
 
 ---
 
@@ -100,6 +101,7 @@ Items left incomplete from the last development session. Start here before new w
 | H15 | **Stale tunnel cleanup on VPS** | **DONE** | Fixed with `ClientAliveInterval 30` + `ClientAliveCountMax 3` (2026-04-12). Old zombie sessions accumulating since Apr 01 were cleaned with `sudo pkill -u ra_tunnel`. |
 | H16 | **Sign normalization in drivers** | TODO | Drivers should normalize battery/grid signs so all consumers (dashboard, cloud, web) get consistent convention. Currently each consumer flips signs independently. See `15-sign-conventions.md`. |
 | H17 | **energyWindows real calculation** | TODO | `smartboxSendData` sends daily kWh totals as 5/10/15/60m windows — wrong. Need SB-side ring buffer to compute actual rolling energy per window. Cloud backend expects real windowed values. |
+| H21 | **Investigate periodic task 18 HTTP 500** | OPEN | `Historical Data Backfill` still fails on some runs (for example at 15:55, 16:05, 16:15 on 2026-04-12). One captured payload uses `plantId=df559764-d5f3-4101-a3cb-cc1b7d1831f3`. |
 | H18 | **sb-manager alias field** | TODO | PATCH API rejects `alias` field (unrecognized key). Column exists in DB but not in zod schema. Add to PATCH validation + propagate to device via health poll response. |
 | H19 | **sb4 WiFi stability** | LOW | USB WiFi dongle (Ralink RT5370) drops connection repeatedly. Ethernet preferred for stable operation. RTL8188GU dongle not supported (no kernel driver). |
 | H20 | **GoodWe Modbus single-client** | KNOWN | Two SmartBoxes on same GoodWe inverter cause `Connection reset by peer` loops. Only one SB can poll per inverter. Documented in `02-smartbox-sbc.md`. |

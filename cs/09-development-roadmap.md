@@ -9,6 +9,7 @@
 
 - **Produkcni stav k 12.4.2026** -- prehled co je hotove a co zbyva.
 - **Historicky model** se narovnava na kanonicke `power_1m` / `energy_15m`, nad kterymi se sklada reporting profil `power_bf`, s usage resolverem a lineage.
+- **Aktualni handoff**: service je o jeden commit pred workery (`da784a6` vs `a04e0ba`) a `task 18` stale obcas pada na HTTP `500`.
 - **Priorita 1 (1-2 tydny)**: instalace, nastaveni, sync migrace, forecast integrace.
 - **Priorita 2 (2-4 tydny)**: command execution, SmartBox TOU rizeni, mobilni app MVP.
 - **Priorita 3**: hardening -- zabezpeceni, zalohy, monitoring.

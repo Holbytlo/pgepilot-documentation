@@ -10,6 +10,7 @@
 - **3 servery Hetzner**: pgepilot.cz (7 Docker kontejneru), ra-energity.cz (SmartBox VPS), a dalsi.
 - **8 databazi** na MariaDB pokryvajicich vsechny sluzby.
 - **`pge_data`** dnes obsahuje kanonickou historii (`power_1m`, `power_rt`, `energy_15m`) a reportingove profily (`power_bf`, `power_1h`, `power_1d`), ktere se umi skladat nad kanonickou historii.
+- **Runtime split**: `pgepilot_service` je na `da784a6`, ale `worker1/2/3` jsou stale na `a04e0ba`; pred dalsim deployem je potreba to vedome zkontrolovat.
 - **Deploy postupy** pro jednotlive kontejnery a servicy.
 - **Zalohovani**: v soucasnosti neuplne -- identifikovano jako riziko.
 - **Scheduler realita**: produkce uz neni popsatelna jen pres stary `/scheduled_tasks`; kanonicka pravda je dnes `task_definitions` + worker flow.

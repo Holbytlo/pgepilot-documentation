@@ -34,6 +34,7 @@ INDEX.md                     <-- AI entry point: file map
 09-development-roadmap.md    <-- Current state and priorities
 10-security.md               <-- Known risks and hardening plan
 11-email-api.md              <-- Email API reference
+16-current-handoff.md        <-- Live handoff for next chat/window
 cs/                          <-- Czech human-readable mirror
 assets/                      <-- Wireframes, PDFs, diagrams
 ```
