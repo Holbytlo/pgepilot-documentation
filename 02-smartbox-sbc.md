@@ -323,9 +323,13 @@ SQLite storage for sensor data with 1-day retention.
 Communication with PgePilot Cloud via JSON-RPC 2.0 over HTTPS.
 
 - `main.py` -- FastAPI application
-- JWT authentication against auth.pgepilot.cz
+- JWT authentication against a configurable auth endpoint
 - Methods: `smartboxSendData`, `smartboxPoll`
 - Credentials configured in `rpc_client_config.yaml`
+
+Current production auth split:
+- Legacy/default path: `https://auth.pgepilot.cz`
+- Canary path (verified 2026-04-12): `https://service.pgepilot.cz` using the same `/login`, `/refresh-token`, and `/verify-token` contract
 
 ### 4. Communication Controller (no dedicated port)
 
@@ -354,7 +358,8 @@ Communication Controller -- field mapping, poll/send loops
   | smartboxSendData (every 5s)
   v
 RPC Client (:3012) -- FastAPI, JWT auth, JSON-RPC 2.0
-  | HTTPS to service.pgepilot.cz/rpc
+  | HTTPS auth to auth.pgepilot.cz (legacy) or service.pgepilot.cz (canary)
+  | HTTPS RPC to service.pgepilot.cz/rpc
   v
 PgePilot Cloud -- stores in rpc_kv, processes telemetry
 ```

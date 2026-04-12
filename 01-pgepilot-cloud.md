@@ -32,11 +32,12 @@ PgePilot is a cloud-based monitoring platform that collects data from PV inverte
 | **pgepilot_worker3** | 6003 | 2263 | PHP 8.1 | Additional task worker | Active |
 | **pgepilot_jobmanager** | 5000-5001 | 2205 | Node.js v20, PM2 | Job orchestrator; current production recurring work is driven by DB-backed `task_definitions`, while the older `/scheduled_tasks` block stays commented on current `main` | Active |
 | **pgepilot_servicedesk** | 3050, 3060 | 2206 | Vue3, Node.js | Frontend: servicedesk (:3050) + PGE App (:3060) | Active |
-| **pgepilot_auth_srv** | 4000 | -- | Node.js, JWT | Authentication (login, token validation) | Active |
+| **pgepilot_auth_srv** | 4000 | -- | Node.js, JWT | Legacy SmartBox / verify-token auth for non-migrated clients | Active |
 | **nginx-proxy-manager** | 80, 443, 81 | -- | nginx | Reverse proxy, SSL, Let's Encrypt | Active |
 
 > **Note**: `pgepilot_beapp` (legacy PHP backend) is NOT running. It exists as a Docker image but is not started.
 > Workers 2 and 3 were added to distribute task execution load.
+> **Auth note (2026-04-12)**: `pgepilot-service` now also exposes legacy-compatible SmartBox auth endpoints (`/login`, `/refresh-token`, `/verify-token`, `/issue-smartbox-token`). SB4 is the current canary using `service.pgepilot.cz`; `auth.pgepilot.cz` stays active for the remaining boxes.
 
 ---
 

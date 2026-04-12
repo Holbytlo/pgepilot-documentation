@@ -25,6 +25,20 @@ Authorization: Bearer <token>
 Current production login goes through `pgepilot-service` `POST /api/v2/auth/login`, which issues the JWT used by `pge-app`.
 `pgepilot_auth_srv` still exists as a parallel legacy auth component, but it is not the only auth path in the stack anymore.
 
+SmartBox-compatible auth is now also available directly on `pgepilot-service`:
+
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `/login` | POST | Legacy-compatible SmartBox login |
+| `/refresh-token` | POST | Refresh SmartBox access token |
+| `/verify-token` | GET | Verify SmartBox Bearer token |
+| `/issue-smartbox-token` | POST | Issue SmartBox token from backend |
+
+Current production state on 2026-04-12:
+- `auth.pgepilot.cz` still points to legacy `pgepilot_auth_srv`
+- `service.pgepilot.cz` serves the same SmartBox auth contract from `pgepilot-service`
+- SB4 is the first canary using `service.pgepilot.cz`; other boxes remain on legacy auth
+
 ---
 
 ## API v2 Endpoints (36+)
@@ -119,6 +133,8 @@ Still running on the same service container. Used by older clients.
 | Endpoint | Method | Description |
 |----------|--------|-------------|
 | `/login` | POST | Legacy login path; mixed transitional auth flow, not the primary `pge-app` login anymore |
+| `/refresh-token` | POST | Legacy-compatible SmartBox token refresh |
+| `/verify-token` | GET | Legacy-compatible SmartBox token verification |
 | `/UserByLogin` | GET | User info |
 | `/getCustomerPlants` | GET | Plant IDs for customer |
 | `/getPlantInfo` | GET | Plant detail |

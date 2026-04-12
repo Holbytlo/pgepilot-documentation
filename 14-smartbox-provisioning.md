@@ -263,13 +263,24 @@ devices:
 
 Editovat `/opt/energity/sb/rpc_client/rpc_client_config.yaml`:
 ```yaml
-auth:
-  url: "https://auth.pgepilot.cz"
+pgepilot:
+  auth_url: "https://auth.pgepilot.cz"      # legacy default
+  rpc_url: "https://service.pgepilot.cz/rpc"
+
+credentials:
   username: "sbx_<label>"   # napr. sbx_deye25
   password: "<heslo>"
-rpc:
-  url: "https://service.pgepilot.cz/rpc"
+
+identifiers:
+  smartbox_id: "<uuid>"
+  plant_id: "<uuid>"
+  master_machine_id: "<uuid>"
 ```
+
+Canary rollout rule (verified 2026-04-12):
+- default for existing boxes remains `https://auth.pgepilot.cz`
+- only explicitly migrated boxes should switch `pgepilot.auth_url` to `https://service.pgepilot.cz`
+- SB4 is the first box running on the new auth path
 
 ### 6c) Identita SmartBoxu (smartbox_config.yaml)
 
@@ -345,7 +356,7 @@ ssh -J limited@ra-energity.cz -p <SSH_PORT> root@127.0.0.1 \
 - [ ] Watchdog: **enabled=true** (v /health response)
 - [ ] Device-controller: **1 device initialized** (v journalctl)
 - [ ] sensor_data.db: **roste** (data z inverteru tece)
-- [ ] rpc-client: **login 200 OK** proti auth.pgepilot.cz (data odesilana do cloudu)
+- [ ] rpc-client: **login 200 OK** proti nakonfigurovanemu auth endpointu (`auth.pgepilot.cz` legacy nebo `service.pgepilot.cz` pro migrovany box)
 - [ ] ra-tunnel: **active** (zarizeni bude dostupne vzdalene)
 - [ ] WiFi/Ethernet: **stabilni** (ping na ra-energity.cz funguje)
 
