@@ -27,6 +27,11 @@
 | HW watchdog sb1+sb4 | **DONE** | `RuntimeWatchdogSec=30` enabled on both devices (2026-04-12). Auto-reboot on freeze. |
 | Deye driver merge | **DONE** | Surgical cherry-pick from `dev_deye` into `devva` (commit `5322f3f`, 2026-04-11). 5 new files + 2-line edit in device_manager.py. GoodWe untouched, Deye opt-in via devices_config.yaml. |
 | sb4 deploy | **DONE** | rsync `devva@5322f3f` to sb4 `/opt/energity/sb/` (2026-04-11). 7/7 services running, DeyeInverterDriver registered, smoke test passed. |
+| sb7 full setup | **DONE** | Hostname, watchdog, StartLimit, SSH key, venv, 7 systemd services, Deye Solarman config (enabled:false). Ready for customer deploy. (2026-04-12) |
+| YAML JSON cache | **DONE** | `modbus_device.py` + `base_device.py`: transparent JSON cache for YAML register/config files. Startup 55s → 4s on ARM. Commit `0a0f747`. (2026-04-12) |
+| smartboxSendData fix | **DONE** | Fixed 6 field mapping bugs (grid always 0, load wrong key, PV not summed, battery not summed). Added `clientTs`, grid sign normalization (+export/-import). Commit `e5be146`. (2026-04-12) |
+| Sign conventions doc | **DONE** | `15-sign-conventions.md` — standardized sign convention for all drivers. GoodWe needs flip (battery raw=+discharge OK, grid raw=+import needs flip). Deye native OK. (2026-04-12) |
+| LCD dashboard | **DONE** | 3-page swipeable dashboard on M5Stack ILI9342C display: Status / Energy Flow / Data. Touch swipe via evdev. systemd service `energity-display`. (2026-04-12) |
 
 ---
 
@@ -93,6 +98,11 @@ Items left incomplete from the last development session. Start here before new w
 | H13 | **sb7 Deye deploy** | NEXT | sb7 goes to customer with Deye inverter (SUN-xK-SG04LP3-EU). Needs: get sb7 online, rsync `devva`, configure `devices_config.yaml` with real Deye IP/unit_id, test against real HW. Solarman V5 transport may be needed if customer has LSW-3 dongle instead of direct Modbus TCP. |
 | H14 | **sb1 deploy of devva@5322f3f** | OPTIONAL | sb1 still runs `be59807`; rsync deploy of the newer additive Deye commit has not been done yet. GoodWe runtime is currently stable. Deploy when convenient -- same rsync procedure as sb4. |
 | H15 | **Stale tunnel cleanup on VPS** | **DONE** | Fixed with `ClientAliveInterval 30` + `ClientAliveCountMax 3` (2026-04-12). Old zombie sessions accumulating since Apr 01 were cleaned with `sudo pkill -u ra_tunnel`. |
+| H16 | **Sign normalization in drivers** | TODO | Drivers should normalize battery/grid signs so all consumers (dashboard, cloud, web) get consistent convention. Currently each consumer flips signs independently. See `15-sign-conventions.md`. |
+| H17 | **energyWindows real calculation** | TODO | `smartboxSendData` sends daily kWh totals as 5/10/15/60m windows — wrong. Need SB-side ring buffer to compute actual rolling energy per window. Cloud backend expects real windowed values. |
+| H18 | **sb-manager alias field** | TODO | PATCH API rejects `alias` field (unrecognized key). Column exists in DB but not in zod schema. Add to PATCH validation + propagate to device via health poll response. |
+| H19 | **sb4 WiFi stability** | LOW | USB WiFi dongle (Ralink RT5370) drops connection repeatedly. Ethernet preferred for stable operation. RTL8188GU dongle not supported (no kernel driver). |
+| H20 | **GoodWe Modbus single-client** | KNOWN | Two SmartBoxes on same GoodWe inverter cause `Connection reset by peer` loops. Only one SB can poll per inverter. Documented in `02-smartbox-sbc.md`. |
 
 ---
 
@@ -142,7 +152,10 @@ Items left incomplete from the last development session. Start here before new w
 | 3.12 | plant_config | Fill in for all plants (many missing) | Small |
 | 3.13 | **Watchdog in provisioning** | Add `RuntimeWatchdogSec=30` to `sb_bootstrap.sh` or base image. Every new SB must have HW watchdog enabled at install time. Currently manual post-install step (see H11). | Small |
 | 3.14 | **GoodWe scale N/A fix** | Fix `modbus_reg_goodwe.yaml` scale: N/A entries (see H12). Currently ~15 registers produce warnings every poll cycle. | Small |
-| 3.15 | **sb1 code deploy** | Rsync `devva@5322f3f` to sb1 (see H14). Live SB1 is still on `be59807`; deploy is additive and expected downtime is ~30s. | Small |
+| 3.15 | **sb1 code deploy** | Rsync `devva@e5be146` to sb1 (see H14). Live SB1 is still on `be59807`; deploy is additive and expected downtime is ~30s. Now includes JSON cache + smartboxSendData fix. | Small |
+| 3.16 | **Sign normalization** | Normalize battery/grid signs in drivers, not in consumers. See H16 + `15-sign-conventions.md`. | Medium |
+| 3.17 | **energyWindows real calculation** | SB-side rolling energy aggregation for 5/10/15/60m windows. See H17. | Medium |
+| 3.18 | **sb-manager alias API** | Add `alias` to PATCH schema + propagate to device. See H18. | Small |
 
 ---
 
