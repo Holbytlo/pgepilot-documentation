@@ -66,6 +66,25 @@ Total: **28 tables** in pge_control.
 - Connector has aggregationLevel: DEVICE (vendor API) or MACHINE (SmartBox/relay)
 - Binding has priority, transform_json (scale/invert/clamp), enabled flag
 
+### SmartBox Identity Bundle
+
+For SmartBox provisioning the canonical identity bundle is:
+
+- `sb_id` = physical box in `sb-manager`
+- `collection_point_id` = site in `cp_collection_points`
+- `device_id` = logical SmartBox device in `cp_devices`
+- `machine_ids[]` = physical machines in `cp_machines`
+- `smartbox_id` = SmartBox auth identity in `cp_connector_auth`
+- `connector_id` = SmartBox RPC connector in `cp_connectors`
+
+Rules:
+
+- `smartbox_id` is the SmartBox identity on the wire
+- `collection_point_id` and `device_id` are authoritative server-side routing keys
+- `plantId` is not a SmartBox identity field anymore
+- no new provisioning writes go to legacy `pgepilot.plants` or `pgepilot.machines`
+- `login` is credential only; it must not be treated as the box identity
+
 ### Naming Convention
 
 - `cp_` prefix on tables = "control-plane" namespace (NOT abbreviation for Collection Point)

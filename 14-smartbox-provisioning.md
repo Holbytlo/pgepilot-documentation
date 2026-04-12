@@ -205,6 +205,27 @@ ssh -J limited@ra-energity.cz -p <SSH_PORT> root@127.0.0.1 "
 
 ## Faze 6: Konfigurace zarizeni
 
+> Od 2026-04-12 je kanonicka SmartBox identita generovana z `sb-manager -> pgepilot-service -> cp_*`.
+> Repo soubory `rpc_client_config.yaml`, `comm_controller_config.yaml` a `smartbox_config.yaml` jsou uz jen sablony.
+> Na novem boxu se nesmi nechat vychozi hodnoty z repa; bez vygenerovane identity bundle ma service radeji failnout, nez se hlasit pod cizim boxem.
+
+### Kanonicky identity bundle
+
+Kazdy SmartBox musi dostat vlastni:
+
+- `sb_id` — fyzicky box v `sb-manager`
+- `collection_point_id` — lokalita v `cp_collection_points`
+- `device_id` — SmartBox device v `cp_devices`
+- `smartbox_id` — auth identita v `cp_connector_auth`
+- `machine_ids[]` — stroje v `cp_machines`
+
+Plati:
+
+- `login` je jen credential
+- `smartbox_id` je identita boxu
+- `machine_id` je identita konkretniho stroje
+- `plantId` se pro SmartBox provisioning uz nepouziva jako zdroj pravdy
+
 ### 6a) Konfigurace stridace (devices_config.yaml)
 
 Na zarizeni editovat `/opt/energity/sb/device_controller/devices_config.yaml`:
@@ -268,7 +289,7 @@ pgepilot:
   rpc_url: "https://service.pgepilot.cz/rpc"
 
 credentials:
-  username: "sbx_<label>"   # napr. sbx_deye25
+  username: "sbx_<label>"   # napr. sbx_demo_box
   password: "<heslo>"
 
 identifiers:
