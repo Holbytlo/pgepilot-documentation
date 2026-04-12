@@ -14,6 +14,7 @@ Current verified state:
 - `pgepilot_service` runtime: `main@1727f60`
 - `pgepilot_worker1/2/3` runtime: `main@1727f60`
 - `pgepilot_servicedesk:/home/app2/pge-app`: `main@3d7e6bb`
+- `pgepilot_servicedesk:/home/app2/servicedesk`: `main@5630af4`
 - `sb-manager` runtime on VPS: `main@21df16b`
 - local SmartBox source repo reference: `sb/devva@45a2fc0`
 - public `app.pgepilot.cz` bundle: `index-lGjKNcFm.js` + `index-DfwOyOjc.css`
@@ -47,6 +48,7 @@ Important:
 - SmartBox provisioning now enforces UUID validation in both `sb-manager` and `pgepilot-service`
 - bad live IDs on `sb1 relay` and `sb7 inverter` were repaired end-to-end on `2026-04-12 23:16 CEST`
 - `sb-manager -> pgepilot-service` cloud sync was re-run successfully for SB1 and SB7 after the repair
+- servicedesk `Historie dat` page was repaired on `2026-04-12` by removing the hardcoded `pgedata.cz` dependency from `server/src/routes/history.ts`; live `/api/history/plants` now returns `35` items again instead of `HTTP 500`
 
 ---
 
@@ -108,6 +110,15 @@ For this handoff:
 - do not silently change auth contracts while debugging history
 - if a task is about SB payload consistency, stay in SB/service payload scope unless auth is explicitly the bug
 - if a task is about new SmartBox provisioning, use the `cp_*` identity model (`collection_point_id`, `device_id`, `smartbox_id`, `machine_id`) and do not write new legacy `plants/machines` assumptions back into docs or code
+
+### 4. Servicedesk history debt
+
+The user-facing servicedesk bug is fixed, but the feature still sits on the legacy history model:
+
+- `servisdesk/server/src/routes/history.ts` reads `pgepilot_data.{code}_power_5m`
+- the main cloud/runtime history model already treats canonical history as `pge_data.{code}_power_1m`
+- this means servicedesk history works again today, but it is still not aligned with the canonical history/source-policy stack used elsewhere
+- if history detail keeps evolving, this page should eventually be refactored to resolve datasets via the same policy layer instead of querying legacy tables directly
 
 ---
 
