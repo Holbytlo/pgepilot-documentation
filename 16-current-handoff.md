@@ -11,8 +11,8 @@ This file exists because the production state changed across multiple chats on t
 
 Current verified state:
 
-- `pgepilot_service` runtime: `main@da784a6` (`fix: bind smartbox local auth middleware helper`)
-- `pgepilot_worker1/2/3` runtime: `main@a04e0ba` (`Route history pipeline through canonical pge_data datasets`)
+- `pgepilot_service` runtime: `main@a30c78c` (`fix: stabilize goodwe historical backfill`)
+- `pgepilot_worker1/2/3` runtime: `main@a30c78c` (`fix: stabilize goodwe historical backfill`)
 - `pgepilot_servicedesk:/home/app2/pge-app`: `main@3d7e6bb`
 - public `app.pgepilot.cz` bundle: `index-lGjKNcFm.js` + `index-DfwOyOjc.css`
 - `task_definitions`: `18=active`, `19=active`, `20=disabled`, `21=disabled`, `22=active`, `23=active`
@@ -20,8 +20,8 @@ Current verified state:
 Important:
 
 - the history cutover and the SmartBox/auth follow-up were not the same deploy
-- the service container is now one commit ahead of the workers
-- do not assume `service` and `worker1/2/3` are on the same SHA
+- the runtime split was closed on 2026-04-12 by deploying `a30c78c` to `service` and all `worker1/2/3`
+- auth remains a separate topic; do not mix SmartBox auth changes into history debugging unless auth is the direct root cause
 
 ---
 
@@ -34,47 +34,36 @@ Important:
 - `task 22` (`recordRealtimeToHistory`) was reactivated and writes current `realtime_state` into `power_1m`
 - `task 23` computes `energy_15m` from `power_1m`
 - web app already uses the new history `usage` contract
+- GoodWe historical backfill now ingests one day at a time instead of one 7-day API payload per plant
+- reverse backfill now stores a `plant_config.goodwe_reverse_empty_before_date` marker when the chunk immediately before current `min_date` is empty, so plants do not retry the same empty reverse window forever
 
 ---
 
 ## What Is Still Open
 
-### 1. Periodic Task 18 failures
+### 1. Continue Monitoring Task 18
 
-`Historical Data Backfill` is still failing on some runs with HTTP `500`.
+The previous hard failure mode was confirmed and fixed:
 
-Verified examples:
+- root cause was a general GoodWe backfill issue, not one broken plant
+- worker PHP hit `Allowed memory size of 536870912 bytes exhausted` while decoding a large `GetStationHistoryDataChart` response
+- some plants also retried the same empty reverse chunk forever because the system did not remember that history already ended there
 
-- `2026-04-12 15:55:16` -> failed
-- `2026-04-12 16:05:16` -> failed
-- `2026-04-12 16:15:16` -> failed
+Deployed fix on `2026-04-12`:
 
-One captured failed payload:
+- commit `131080f`: request only canonical history targets needed for `power_1m`
+- commit `a30c78c`: ingest GoodWe history day-by-day and store a reverse-empty stop marker in `plant_config`
 
-```json
-{
-  "controllerFunction": "backfillHistoricalData",
-  "params": {
-    "plantId": "df559764-d5f3-4101-a3cb-cc1b7d1831f3",
-    "dateFrom": "",
-    "dateTo": "",
-    "maxDays": 7
-  }
-}
-```
+Post-deploy verification:
 
-So the history model is deployed, but the GoodWe backfill is not yet fully clean.
+- manual canary for `BD41` (`e7f56834-1e0d-4a1a-b5dd-1438ff332e7d`) completed cleanly with `status=OK`, `processed_days=7`, `days_with_data=7`, `total_datapoints_saved=10045`
+- manual canary for `FVE_DF55` (`df559764-d5f3-4101-a3cb-cc1b7d1831f3`) first returned clean empty reverse window, then second run returned `reverse_exhausted`
+- `task_definition_id = 18` had `0` failed rows after `2026-04-12 17:40:00`
+- no new Apache fatal/OOM entries were observed after deploy
 
-### 2. Runtime split
+This should now be treated as stabilized but still worth watching for a few scheduler cycles.
 
-`pgepilot_service` is on `da784a6`, while `worker1/2/3` remain on `a04e0ba`.
-
-If the next task touches:
-
-- SmartBox/local auth helper -> inspect `da784a6`
-- worker-executed history/backfill code -> workers still run `a04e0ba`
-
-### 3. Auth context
+### 2. Auth context
 
 Auth was handled in a different chat.
 
