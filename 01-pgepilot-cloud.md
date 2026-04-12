@@ -60,9 +60,9 @@ Worker1 --> calls GoodWe/SolaX API --> stores in DB
 | 17 | Control Relays | **Yes** | Per-plant relay strategy |
 | 18 | Historical Data Backfill | **Yes** | Rewritten: GetStationHistoryDataChart (1min, 57 registers) -> canonical `pge_data.{code}_power_1m` with lineage. `power_bf` stays a reporting profile resolved over that history. |
 | 19 | Energy Data Backfill (GoodWe kWh) | **Yes** | GoodWe reported kWh is aggregated into canonical `pge_data.{code}_energy_15m` with source lineage. |
-| 20 | Sync Realtime | No | Migrated from crontab, currently disabled |
-| 21 | Sync History | No | Migrated from crontab, currently disabled |
-| 22 | Record Realtime to History | No | Migrated from crontab, currently disabled |
+| 20 | Sync Realtime | No | Migrated from crontab, remains disabled |
+| 21 | Sync History | No | Migrated from crontab, remains disabled |
+| 22 | Record Realtime to History | Yes | Reactivated on 2026-04-12; writes `realtime_state` into canonical `pge_data.{code}_power_1m` every minute |
 | 23 | Compute Energy 15m | **Yes** | `every:900seconds`; prefers `power_1m`, falls back to `power_rt`, writes lineage into `energy_15m` |
 | 24 | PV Forecast (forecast.solar) | No | `every:3600seconds`; endpoint exists in service, DB definition currently disabled |
 | 25 | Load Forecast | No | `every:3600seconds`; endpoint exists in service, DB definition currently disabled |
@@ -175,9 +175,9 @@ Sync has been **migrated from container crontab to task_definitions** (IDs 20-22
 
 | Task ID | Name | Previously | Current mechanism |
 |---------|------|------------|-------------------|
-| 20 | Sync Realtime | `sync_realtime.php` (cron 1min) | task_definition (currently disabled) |
-| 21 | Sync History | `sync_history.php` (cron 5min) | task_definition (currently disabled) |
-| 22 | Record Realtime to History | `record_realtime_to_history.php` (cron 1min) | task_definition (currently disabled) |
+| 20 | Sync Realtime | `sync_realtime.php` (cron 1min) | task_definition (disabled) |
+| 21 | Sync History | `sync_history.php` (cron 5min) | task_definition (disabled) |
+| 22 | Record Realtime to History | `record_realtime_to_history.php` (cron 1min) | task_definition (active since 2026-04-12) |
 | 23 | Compute Energy 15m | `compute_energy_15m.php` (cron 15min) | task_definition (**active**) |
 
 The host crontab still runs:

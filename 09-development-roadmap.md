@@ -82,7 +82,7 @@ Items left incomplete from the last development session. Start here before new w
 | H2 | ~~Synchronize live PGE App checkout with git~~ | **DONE** | `pgepilot_servicedesk:/home/app2/pge-app` is now clean `main@3d7e6bb` and rebuilt in place. |
 | H3 | **Prove auth runtime provenance** | UNKNOWN | `pgepilot_auth_srv` runs from `/app` with no visible git checkout. Need to link it to a repo/image source of truth. |
 | H4 | ~~Create tpl_power_bf table~~ | **DONE** | tpl_power_1m created (57 register + 5 computed columns). 17 GoodWe plant tables created. Task 18 rewritten to use power_1m. |
-| H5 | **Activate task_definitions 20-22** | READY | Sync tasks migrated from crontab but currently disabled. Before enabling, align them with the raw/source -> derived/reporting model so they do not reintroduce split-brain history. |
+| H5 | **Activate task_definitions 20-22** | PARTIAL | `22 recordRealtimeToHistory` was activated on 2026-04-12. `20` and `21` remain disabled until their legacy sync behavior is either removed or explicitly re-approved. |
 | H6 | **SB1 poll warning** | LOW | Communication controller logs poll as "failed" (ok=None). Either server adds `ok: true` to smartboxPoll response, or fix comm controller parsing. |
 | H7 | **SB1 NTP warning** | LOW | "NTP not initialized, using system time" -- not critical but should be resolved. |
 | H8 | ~~Git push SB1 changes~~ | **DONE** | `Holbytlo/sb` `devva` currently points to commit `5322f3f` (`feat: add Deye inverter driver`) |
@@ -103,7 +103,7 @@ Items left incomplete from the last development session. Start here before new w
 | 1.1 | ~~Installation page~~ | **DONE** on current `pge-app` `main` (`3d7e6bb`) | ~~Medium~~ |
 | 1.2 | ~~Settings page~~ | **DONE** on current `pge-app` `main` (`3d7e6bb`) | ~~Medium~~ |
 | 1.3 | Password change | Missing endpoint + UI | Small |
-| 1.4 | ~~Sync crons to JobManager~~ | **DONE** -- migrated to task_definitions 20-22 (currently disabled, need activation) | ~~Medium~~ |
+| 1.4 | ~~Sync crons to JobManager~~ | **DONE** -- migrated to task_definitions 20-22; `22` is now active, `20/21` remain intentionally disabled | ~~Medium~~ |
 | 1.5 | PV forecast for all CPs | Add pv_forecast_config for more plants (currently only VA + Kder Veltrusy) | Medium |
 | 1.6 | SolaX backfill | Nov 2025 - Mar 2026 not completed (was killed) | Medium |
 | 1.7 | GoodWe backfill | Complete history for all GW plants | Medium |

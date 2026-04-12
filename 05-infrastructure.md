@@ -352,7 +352,7 @@ The older `Holbytlo/pgepilot-js` `/scheduled_tasks` and `/run_scheduled_task` ha
 | 19 | Energy Data Backfill (GoodWe) | Yes | Repeating |
 | 20 | Sync Realtime | **No** | Migrated from cron, still disabled |
 | 21 | Sync History | **No** | Migrated from cron, still disabled |
-| 22 | Record Realtime to History | **No** | Migrated from cron, still disabled |
+| 22 | Record Realtime to History | **Yes** | Reactivated 2026-04-12; records `realtime_state` into canonical `power_1m` every minute |
 | 23 | Compute Energy 15m | Yes | `every:900seconds` |
 | 24 | PV Forecast (forecast.solar) | **No** | `every:3600seconds` |
 | 25 | Load Forecast | **No** | `every:3600seconds` |
