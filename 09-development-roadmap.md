@@ -1,11 +1,11 @@
 # 09 -- Development Roadmap
 
 > Current production state, completed milestones, and prioritized work items.
-> Last updated: 2026-04-10
+> Last updated: 2026-04-12
 
 ---
 
-## Production State (2026-04-10)
+## Production State (2026-04-12)
 
 | Component | Status | Details |
 |-----------|--------|---------|
@@ -16,12 +16,17 @@
 | PGE App (web) | Production (synchronized) | Dashboard, CPDetail, Charts, Alerts, Domains, Users, Instalace, Nastaveni. Production source checkout is clean `main@05e61e0`; live bundle serves `/assets/index-Bnf_bCjw.js`. |
 | Forecast system | Production | PV (forecast.solar Pro), load (profiling), weather (Open-Meteo), adaptive correction |
 | JobManager scheduler | Production | Current recurring runtime is DB-backed through `task_definitions`; legacy `pgepilot-js` scheduler block stays commented on current `main`. Runtime is clean `main@4346047`. |
-| SmartBox SB1 | Production (monitoring) | 4 microservices, Modbus polling, RPC working, 2139 rpc_kv records. Plant VA_SB (ID 202) registered as pull connector. |
+| SmartBox SB1 | Production (monitoring) | 4 microservices, Modbus polling, RPC working, 2139 rpc_kv records. Plant VA_SB (ID 202) registered as pull connector. Live code: `devva@be59807`; `origin/devva` is one additive commit ahead at `5322f3f` (Deye driver merge), not yet deployed on SB1. |
+| SmartBox sb4 | Dev (at home) | Same codebase as SB1 (`devva@5322f3f`), rsync deployed 2026-04-11. GoodWe inverter disabled (shared LAN with sb1). Deye driver smoke-tested OK. |
 | SmartBox TOU | In progress | Spec ready, not yet implemented on real SB |
-| sb-manager | Production (historically unstable) | 156 total restarts recorded by PM2; currently online with 10-day uptime |
+| sb-manager | Production (historically unstable) | 161 total restarts recorded by PM2; currently online with ~38h uptime (verified 2026-04-12) |
 | Email API | Production | 5 profiles (servis, automat, technika, obchod, info) |
 | Connector self-governance | Production | Budget trait, cache, enabled flags |
 | Worker runtime sync | **DONE** | worker1/2/3 were backed up and reset to clean `main@b578bd8` on 2026-04-10 |
+| VPS tunnel keepalive | **DONE** | `ClientAliveInterval 30` + `ClientAliveCountMax 3` in sshd_config (2026-04-12). Dead tunnels auto-cleaned within 90s. |
+| HW watchdog sb1+sb4 | **DONE** | `RuntimeWatchdogSec=30` enabled on both devices (2026-04-12). Auto-reboot on freeze. |
+| Deye driver merge | **DONE** | Surgical cherry-pick from `dev_deye` into `devva` (commit `5322f3f`, 2026-04-11). 5 new files + 2-line edit in device_manager.py. GoodWe untouched, Deye opt-in via devices_config.yaml. |
+| sb4 deploy | **DONE** | rsync `devva@5322f3f` to sb4 `/opt/energity/sb/` (2026-04-11). 7/7 services running, DeyeInverterDriver registered, smoke test passed. |
 
 ---
 
@@ -77,9 +82,14 @@ Items left incomplete from the last development session. Start here before new w
 | H5 | **Activate task_definitions 20-22** | READY | Sync tasks migrated from crontab but currently disabled. Need to verify they work, then enable. |
 | H6 | **SB1 poll warning** | LOW | Communication controller logs poll as "failed" (ok=None). Either server adds `ok: true` to smartboxPoll response, or fix comm controller parsing. |
 | H7 | **SB1 NTP warning** | LOW | "NTP not initialized, using system time" -- not critical but should be resolved. |
-| H8 | ~~Git push SB1 changes~~ | **DONE** | `Holbytlo/sb` `devva` currently points to commit `be59807` (`config: switch SB1 to production`) |
+| H8 | ~~Git push SB1 changes~~ | **DONE** | `Holbytlo/sb` `devva` currently points to commit `5322f3f` (`feat: add Deye inverter driver`) |
 | H9 | **SolaX backfill re-enable** | WAITING | Set connector_config backfill_enabled=1 for SOLAX_CLOUD after budget logic is proven reliable. |
 | ~~H10~~ | ~~GoodweSems OpenAPI token refresh broken~~ | **DONE** (2026-04-04) | Fixed: in-memory token cache + auto-retry on 100002. Root cause: INI file race condition between workers + no token refresh on expired response. Commit `248351d`. |
+| H11 | **Watchdog in provisioning** | TODO | `RuntimeWatchdogSec=30` must be enabled on every new SB device during provisioning. Currently done manually post-install. Should be added to `sb_bootstrap.sh` (Debian variant) or baked into base image. Without watchdog, a frozen SB requires physical power-cycle. |
+| H12 | **GoodWe scale factor N/A** | LOW | `modbus_reg_goodwe.yaml` has `scale: N/A` on ~15 registers. Causes `Invalid scale factor` warnings every poll cycle on both sb1 and sb4. Fix: replace `N/A` with numeric scale or remove those registers from poll config. Also causes `Serial=None, Model=None` at device init. |
+| H13 | **sb7 Deye deploy** | NEXT | sb7 goes to customer with Deye inverter (SUN-xK-SG04LP3-EU). Needs: get sb7 online, rsync `devva`, configure `devices_config.yaml` with real Deye IP/unit_id, test against real HW. Solarman V5 transport may be needed if customer has LSW-3 dongle instead of direct Modbus TCP. |
+| H14 | **sb1 deploy of devva@5322f3f** | OPTIONAL | sb1 still runs `be59807`; rsync deploy of the newer additive Deye commit has not been done yet. GoodWe runtime is currently stable. Deploy when convenient -- same rsync procedure as sb4. |
+| H15 | **Stale tunnel cleanup on VPS** | **DONE** | Fixed with `ClientAliveInterval 30` + `ClientAliveCountMax 3` (2026-04-12). Old zombie sessions accumulating since Apr 01 were cleaned with `sudo pkill -u ra_tunnel`. |
 
 ---
 
@@ -127,6 +137,9 @@ Items left incomplete from the last development session. Start here before new w
 | 3.10 | sb-manager stability | Diagnose 156 historical restarts and keep uptime stable | Medium |
 | 3.11 | Cron monitoring | Alert when sync fails | Medium |
 | 3.12 | plant_config | Fill in for all plants (many missing) | Small |
+| 3.13 | **Watchdog in provisioning** | Add `RuntimeWatchdogSec=30` to `sb_bootstrap.sh` or base image. Every new SB must have HW watchdog enabled at install time. Currently manual post-install step (see H11). | Small |
+| 3.14 | **GoodWe scale N/A fix** | Fix `modbus_reg_goodwe.yaml` scale: N/A entries (see H12). Currently ~15 registers produce warnings every poll cycle. | Small |
+| 3.15 | **sb1 code deploy** | Rsync `devva@5322f3f` to sb1 (see H14). Live SB1 is still on `be59807`; deploy is additive and expected downtime is ~30s. | Small |
 
 ---
 

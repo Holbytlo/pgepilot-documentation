@@ -1,7 +1,7 @@
 # 05 -- Infrastructure
 
 > Servers, Docker, databases, networking, deploy procedures, and backups.
-> Last updated: 2026-04-10
+> Last updated: 2026-04-12
 
 > **Credentials note**: All passwords and keys are `[REDACTED]`.
 > Actual values: `zadani/pristupy a servery/PGEERP_Knowledge_Base.md` (private OneDrive).
@@ -107,6 +107,9 @@ See [02-smartbox-sbc.md](02-smartbox-sbc.md) for full details.
 | Disk | 38 GB SSD (28 GB free) |
 | Firewall (UFW) | ALLOW: 22, 80, 443, 3055, 5001. LIMIT: 20002, 20012 |
 | SSL | Let's Encrypt wildcard *.ra-energity.cz (expires 2026-06-06) |
+| SSH keepalive | `ClientAliveInterval 30`, `ClientAliveCountMax 3` (added 2026-04-12) |
+
+**SSH tunnel keepalive (2026-04-12):** `/etc/ssh/sshd_config` now detects dead reverse tunnels within 90s. Previously, rebooted SB devices left zombie tunnel sessions blocking port re-binding for hours. Backup: `/etc/ssh/sshd_config.bak-20260412`.
 
 ---
 
@@ -235,19 +238,57 @@ docker exec pgepilot_servicedesk sh -lc 'cd /home/app2/pge-app && npm run build'
 curl -s -o /dev/null -w '%{http_code}' http://localhost:3060
 ```
 
-### SmartBox (git pull on SB1)
+### SmartBox (preferred rsync deploy; some live devices still have git checkout)
+
+Recommended deploy method is rsync from Mac. Live SB1 currently still has `git` installed and `/opt/energity/sb/.git`, but device-side git is not the target operational model:
+
 ```bash
-# Connect via VPS jump
-ssh -J limited@ra-energity.cz -p 20002 root@127.0.0.1
+# 1. Backup on device
+ssh -J limited@ra-energity.cz -p <SSH_PORT> root@127.0.0.1 \
+  "tar czf /tmp/sb-backup-\$(date +%Y%m%d-%H%M%S).tar.gz -C /opt/energity sb"
 
-# Deploy
-cd /opt/energity/sb && git switch devva && git pull
-systemctl restart energity-device-controller
-systemctl restart energity-comm-controller
+# 2. Stop services
+ssh -J limited@ra-energity.cz -p <SSH_PORT> root@127.0.0.1 \
+  "systemctl stop energity-device-controller energity-comm-controller \
+   energity-rpc-client energity-config-api energity-web-interface \
+   energity-sensor-db energity-logs-db"
 
-# Verify
-systemctl status energity-*
+# 3. Rsync from Mac (excludes preserve per-machine configs and data)
+rsync -az --delete \
+  -e 'ssh -J limited@ra-energity.cz -p <SSH_PORT>' \
+  --exclude='.git/' --exclude='.venv/' --exclude='__pycache__/' \
+  --exclude='*.pyc' --exclude='.DS_Store' --exclude='._*' \
+  --exclude='local_database/*.db*' --exclude='local_database/*.sqlite*' \
+  --exclude='device_controller/devices_config.yaml' \
+  --exclude='communication_controller/smartbox_config.yaml' \
+  --exclude='rpc_client/rpc_client_config.yaml' \
+  --exclude='web_interface/config/backups/' \
+  --exclude='logs/' --exclude='data/' \
+  ~/projekty\ AI/pgepilot/sb/ root@127.0.0.1:/opt/energity/sb/
+
+# 4. Fix ownership and start
+ssh -J limited@ra-energity.cz -p <SSH_PORT> root@127.0.0.1 "
+  chown -R energity:energity /opt/energity/sb/
+  chown -R root:root /opt/energity/sb/.venv/
+  systemctl reset-failed 'energity-*'
+  systemctl start energity-sensor-db energity-logs-db
+  sleep 2
+  systemctl start energity-device-controller energity-comm-controller \
+    energity-config-api energity-web-interface energity-rpc-client"
+
+# 5. Verify
+ssh -J limited@ra-energity.cz -p <SSH_PORT> root@127.0.0.1 \
+  "systemctl list-units 'energity-*' --no-pager --no-legend | awk '{print \$1, \$3, \$4}'"
 ```
+
+SSH ports: sb1=20002, sb4=20032, sb7=20037.
+
+**Important excludes rationale:**
+- `devices_config.yaml` -- per-machine device config (GoodWe IP, Deye IP, enabled state)
+- `rpc_client_config.yaml` -- per-machine cloud credentials (sbx_xxx)
+- `smartbox_config.yaml` -- per-machine identity (machine_id, plant)
+- `local_database/*.db*` -- historical sensor/log data
+- `.venv/` -- stays on device, no new deps needed unless requirements.txt changes
 
 ### Post-Deploy Verification
 

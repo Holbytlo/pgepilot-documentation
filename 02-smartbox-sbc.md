@@ -1,7 +1,7 @@
 # 02 -- SmartBox / SBC Edge System
 
-> Edge computing platform for local inverter monitoring and control via Raspberry Pi devices.
-> Last updated: 2026-04-09
+> Edge computing platform for local inverter monitoring and control via Raspberry Pi and M5Stack CoreMP135 devices.
+> Last updated: 2026-04-12
 
 ---
 
@@ -11,7 +11,7 @@ SmartBox (SB) is an edge computing device (Raspberry Pi) installed at a customer
 
 | Component | Description |
 |-----------|-------------|
-| **SmartBox (SB)** | Physical Raspberry Pi at customer site |
+| **SmartBox (SB)** | Physical device at customer site (RPi 4 or M5Stack CoreMP135) |
 | **SBC (SmartBox Controller)** | Software running on the SB |
 | **VPS** | ra-energity.cz -- management server, SSH tunnel endpoint |
 | **sb-manager** | Web UI for managing all SmartBox devices |
@@ -39,10 +39,10 @@ SmartBox (SB) is an edge computing device (Raspberry Pi) installed at a customer
 | nginx | systemd | 80, 443 | -- | Reverse proxy, SSL termination |
 | sb-router | systemd | 9100 (localhost) | /opt/sb-router | Subdomain routing to SSH tunnels |
 
-### Runtime Snapshot (verified 2026-04-09)
+### Runtime Snapshot (verified 2026-04-12)
 
-- `sb-manager`: clean `main@5fd115b`, PM2 online, 156 total restarts, current uptime 10 days
-- `sb-router`: clean `main@4c4a7ad`, systemd active since 2026-03-12
+- `sb-manager`: clean `main@29ba0df`, PM2 online, 161 total restarts, current uptime ~38h
+- `sb-router`: clean `main@4c4a7ad`, systemd active
 - `pgepilot-smartbox-sim`: PM2 online on port 5001
 
 ### DNS Routing
@@ -67,11 +67,49 @@ Config files: `/etc/sb-router/config.json`, `/etc/nginx/conf.d/01-sb-router-host
 | ops | Operations account |
 | root | Root access |
 
+### SSH Tunnel Keepalive (added 2026-04-12)
+
+VPS sshd is configured to detect dead reverse tunnels automatically:
+
+```
+# /etc/ssh/sshd_config (appended)
+ClientAliveInterval 30    # ping client every 30s
+ClientAliveCountMax 3     # disconnect after 3 missed (= 90s)
+```
+
+Without this, rebooted SB devices leave zombie tunnel sessions on VPS, blocking port re-binding for up to 2h (TCP keepalive default). With this setting, stale tunnels are cleaned up within 90s.
+
+**Manual cleanup** (if needed): `sudo pkill -u ra_tunnel` on VPS kills all tunnel sessions. All SBs reconnect automatically within 30-90s (systemd RestartSec + backoff).
+
+Backup: `/etc/ssh/sshd_config.bak-20260412`
+
 ### Git Push from VPS
 
 ```bash
 GIT_SSH_COMMAND="ssh -i /home/limited/.ssh/githolbytlo -o IdentitiesOnly=yes" git push origin <branch>
 ```
+
+---
+
+## Hardware Watchdog (all SB devices)
+
+All SB devices have hardware watchdog enabled (added 2026-04-12):
+
+```ini
+# /etc/systemd/system.conf
+RuntimeWatchdogSec=30
+```
+
+After `systemctl daemon-reexec`, systemd kicks the hardware watchdog every ~15s. If systemd freezes for 30s (kernel panic, OOM, IO deadlock), the watchdog chip hard-resets the device.
+
+| Device | Watchdog chip | Timeout |
+|--------|--------------|---------|
+| Raspberry Pi 4 (sb1) | Broadcom BCM2835 | 1 min (HW min) |
+| M5Stack CoreMP135 (sb4, sb7) | STM32 IWDG | 30s |
+
+**This must be enabled during provisioning of every new SB device** -- see provisioning runbook.
+
+Backup: `/etc/systemd/system.conf.bak-20260412` on each device.
 
 ---
 
@@ -88,7 +126,8 @@ GIT_SSH_COMMAND="ssh -i /home/limited/.ssh/githolbytlo -o IdentitiesOnly=yes" gi
 | Python | 3.13.5 (venv) |
 | Node.js | v20.19.2 |
 | Inverter | GoodWe ET+ at 192.168.0.70:502 (Modbus TCP) |
-| Git runtime | `/opt/energity/sb`, clean `devva@be59807` (verified 2026-04-09) |
+| Git runtime | `/opt/energity/sb`, live `devva@be59807` (verified 2026-04-12). `origin/devva` is one additive commit ahead: `5322f3f` (Deye driver merge), not yet deployed on SB1. |
+| Watchdog | BCM2835, RuntimeWatchdogSec=30 (enabled 2026-04-12) |
 
 ### Access
 
@@ -151,6 +190,62 @@ journalctl -u energity-device-controller -f
 
 ---
 
+## SmartBox 4 (sb4) -- M5Stack CoreMP135
+
+| Property | Value |
+|----------|-------|
+| Hardware | M5Stack CoreMP135 (STM32MP135D, ARMv7 Cortex-A7) |
+| OS | Debian 12 (bookworm), armv7l |
+| RAM | ~512 MB |
+| Disk | 15 GB SD card (13 GB free) |
+| Ethernet IP | 192.168.0.167 |
+| Python | 3.11.2 (venv) |
+| Location | Dev box (doma, stejna LAN jako sb1) |
+| Inverter | GoodWe at 192.168.0.70:502 (sdileny se sb1, enabled: false -- viz poznamka) |
+| Code | `/opt/energity/sb`, rsync from Mac `devva@5322f3f` (deployed 2026-04-11) |
+| Watchdog | STM32 IWDG, RuntimeWatchdogSec=30 (enabled 2026-04-12) |
+
+### Access
+
+```bash
+ssh -J limited@ra-energity.cz -p 20032 root@127.0.0.1
+```
+
+### Reverse SSH Tunnel (sb4 -> VPS)
+
+```
+VPS :20030  <->  sb4 :80     nginx (web UI)
+VPS :20032  <->  sb4 :22     SSH
+VPS :20033  <->  sb4 :3000   config-api
+VPS :20034  <->  sb4 :3001   rpc-client
+VPS :20035  <->  sb4 :3002   sb-ops-agent
+```
+
+### Services on sb4 (all systemd, root)
+
+Same as SB1 layout (7 energity-* services + sb-ops-agent + ra-tunnel + nginx), all `active running` (verified 2026-04-12). sb-ops-agent reports allUp=true, 6/6 services.
+
+### GoodWe Modbus TCP collision warning
+
+sb4 and sb1 share the same LAN and the same GoodWe inverter (192.168.0.70). **Only ONE SmartBox can poll the inverter at a time.** Two simultaneous Modbus TCP clients cause `Connection reset by peer` loops on both sides -- the inverter firmware resets both connections within minutes.
+
+**Rule:** On sb4 `devices_config.yaml`, main inverter is `enabled: false`. Only enable for testing when sb1 DC is stopped first.
+
+### Deye driver (merged 2026-04-11, commit 5322f3f)
+
+`origin/devva` contains DeyeInverterDriver, but live SB1 does not have this commit yet. sb4 was used for the smoke test and SB1 can receive the same additive deploy later. Files added:
+- `device_controller/drivers/communication/solarman_driver.py` (Solarman V5 protocol)
+- `device_controller/drivers/devices/deye_inverter.py` (DeyeInverterDriver)
+- `device_controller/functions/commands_deye.yaml` (13 commands)
+- `device_controller/functions/functions_deye_poll.yaml` (4 poll categories)
+- `device_controller/drivers/devices/inverter_modbus_registers/modbus_reg_deye.yaml` (36 registers, SUN-xK-SG04LP3-EU)
+
+Deye driver is opt-in: only activates when `devices_config.yaml` specifies `device_driver: DeyeInverterDriver`.
+
+Smoke test passed on sb4 (2026-04-11): imports OK, 36 registers parsed, 13 commands loaded, 4 poll functions loaded, connect failure to TEST-NET-1 IP was graceful (no crash).
+
+---
+
 ## Microservice Architecture (4 Core Services)
 
 ### 1. Device Controller (Port 5010)
@@ -172,11 +267,20 @@ Direct communication with physical devices via Modbus TCP.
 base_device.py (ABC)
   +-- modbus_device.py (register read/write, scaling)
   |     +-- inverter.py (inverter abstraction)
-  |     |     +-- goodwe_inverter.py  [ACTIVE]
+  |     |     +-- goodwe_inverter.py  [ACTIVE on SB1, sb4]
+  |     |     +-- deye_inverter.py    [READY, merged 2026-04-11 for sb7]
   |     |     +-- solax_inverter.py   [READY]
   |     |     +-- victron_inverter.py [READY]
   |     +-- gpio_device.py (GPIO driver)
   |           +-- relay.py (relay driver)
+```
+
+**Communication drivers:**
+```
+base_driver.py (BaseCommunicationDriver)
+  +-- modbus_tcp.py (ModbusTCPDriver)     [thread-safe, production]
+  +-- solarman_driver.py (SolarmanDriver) [Solarman V5 protocol for Deye LSW-3 dongle]
+  +-- modbus_rtu.py                       [lacks thread safety]
 ```
 
 **Active device configuration** (SB1, verified 2026-04-04):
@@ -352,3 +456,6 @@ defaults -> TOU schedule -> dateTime overrides -> direct runtime command
 - `energity-health` (:3007) and `energity-rpc-client` (:3001) bind to 0.0.0.0 (security risk)
 - Passwords hardcoded in `app.py` (web interface)
 - Modbus RTU driver lacks thread safety (only TCP is thread-safe)
+- `modbus_reg_goodwe.yaml` has `scale: N/A` string on ~15 registers (47000, 47505, 47509, 47511, 47602, 47902-47905, 35185, 35187, 35189) -- causes `Invalid scale factor` warnings on every poll cycle. Driver handles gracefully but those register values are not stored. Affects both sb1 and sb4. Fix: replace `N/A` with numeric scale or remove those registers.
+- `smartbox_service.py` logs `Error in smartboxPoll: 'NoneType' object has no attribute 'get'` every 30s on sb4 -- pre-existing bug in comm-controller when device-controller returns no data (0 enabled devices). Cosmetic on dev box, but would be real issue if it appears on production sb1.
+- GoodWe `Serial=None, Model=None` at device init -- related to scale factor N/A bug above (serial/model registers have bad scale config)

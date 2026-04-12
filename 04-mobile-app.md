@@ -1,117 +1,177 @@
-# 04 -- Mobile Application (Planned)
+# 04 -- Mobile Application
 
-> React Native cross-platform app for PV monitoring. Currently in specification phase.
-> Last updated: 2026-04-04
+> React Native cross-platform app for PGE Pilot on iOS and Android.
+> Last updated: 2026-04-11
 
 ---
 
 ## Overview
 
-The mobile app will share the same API v2 as the web app (PGE App), providing PV monitoring for technicians, project managers, and end customers on iOS and Android.
+The mobile app is no longer only a specification. There is an active implementation in the `pge-mobile` repository on GitHub and in this local workspace.
 
 | Property | Value |
 |----------|-------|
-| Framework | React Native |
+| Framework | React Native 0.84 + TypeScript |
 | Platforms | iOS + Android |
-| Backend API | PgePilot API v2 (same as web) |
-| Status | Specification phase |
-| Estimated effort | 15-21 days |
-| Source spec | `zadani/Tvorba mob app/Postup tvorby mobilni aplikace.md` |
-| Entity model | `zadani/Tvorba mob app/ENTITY_MODEL_PGEPILOT_APP.md` |
+| Backend API | PgePilot API v2 (shared with web) |
+| Status | Implemented MVP, active development |
+| Git repo | Holbytlo/pge-mobile (`main` currently at `037f5fb`) |
+| Package id | `cz.pgepilot.mobile` |
+| App name | `PGE Pilot` |
+| Session storage | AsyncStorage |
+
+The app already provides the shared customer monitoring surface used in PGE App:
+
+- login
+- `Přehled`
+- `Domény`
+- `Grafy`
+- `Instalace`
+- `Alerty`
+- collection point detail
+- profile / selected domain context
 
 ---
 
-## Target Users
+## Navigation
 
-| User type | Example | What they see |
-|-----------|---------|---------------|
-| Large institution | Municipality, hotel, energy community | Sharing dashboard, EANo/EANd overviews, manual override |
-| Business (no sharing) | Manufacturing, commercial | SPOT prices, buy/sell optimization, production stats |
-| Residential | House, small business | Production overview, boiler/wallbox automation, tips |
+Current navigation in `src/navigation/RootNavigator.tsx`:
 
----
+| Surface | Screen | Access | Notes |
+|---------|--------|--------|-------|
+| Login | `LoginScreen` | Public | JWT login against API v2 |
+| Přehled | `DashboardScreen` | Auth | Domain chips, KPI cards, collection point list |
+| Domény | `DomainsScreen` | Auth | Aggregated domain inventory with quick access to installations |
+| Instalace | `InstallationsScreen` | Auth | Cross-domain installation list with domain filter |
+| Detail lokality | `CollectionPointDetailScreen` | Auth | Live telemetry, charts, commands |
+| Grafy | `ChartsScreen` | Auth | Day/Week/Month/Year charts, source selector |
+| Alerty | `AlertsScreen` | admin, operator | Matches web role gating |
+| Profil | `ProfileScreen` | Auth | User context, selected domain, logout |
 
-## Screen Structure
+Deep links:
 
-```
-Tab 1: Domains (list of Control Domains)
-  +-- Control Domain detail (= Plant view)
-        +-- Power Flow diagram (PV/grid/battery/load from realtime_state)
-        +-- Plant status (severity badge from v_plant_latest_status)
-        +-- Control Points list (devices)
-              +-- [tap BOILER]   -> Boiler screen
-              +-- [tap WALLBOX]  -> Wallbox screen
-              +-- [tap HEATING]  -> Heating screen
-              +-- [tap POOL]     -> Pool screen
-
-Tab 2: Charts
-  +-- Plant -> Day/Week/Month/Year
-  +-- Per Control Point (boiler kWh today etc.)
-
-Tab 3: Alerts
-  +-- event_log + plant_state_history (severity + timeline)
-
-Tab 4: Overview (admin/service view)
-  +-- All plants -- monitoring_status table
-```
+- `pgepilot://login`
+- `pgepilot://dashboard`
+- `pgepilot://charts`
+- `pgepilot://alerts`
+- `pgepilot://profile`
+- `pgepilot://collection-point/:code/:label?`
 
 ---
 
-## Wireframes
+## Shared UI Surface With Web
 
-8 HTML wireframes available in `zadani/Tvorba mob app/wireframes/`:
+`pge-app` and `pge-mobile` now share the same core user-facing surface for overlapping features:
 
-| File | Screen |
-|------|--------|
-| 01_login.html | Login screen |
-| 02_dashboard.html | Dashboard with domain selector |
-| 03_grafy.html | Charts (Day/Week/Month) |
-| 04_instalace.html | Installation list |
-| 05_detail_plant.html | Plant detail with power flow |
-| 06_detail_machine.html | Machine detail (inverter) |
-| 07_alerty.html | Alert list with severity filters |
-| 10_domeny.html | Domain grid |
-| index.html | Navigation index |
+| Shared function | Web | Mobile | Sync status |
+|-----------------|-----|--------|-------------|
+| Login | `Login.vue` | `LoginScreen.tsx` | Shared API, same JWT flow |
+| Main overview | `Dashboard.vue` (`Přehled` in nav) | `DashboardScreen.tsx` (`Přehled`) | Aligned label and selected-domain behavior |
+| Domains inventory | `Domains.vue` | `DomainsScreen.tsx` | Available on both platforms |
+| Charts | `Grafy.vue` | `ChartsScreen.tsx` | Same API families, same Day/Week/Month/Year model |
+| Installations inventory | `Instalace.vue` | `InstallationsScreen.tsx` | Available on both platforms |
+| Alerts | `Alerty.vue` | `AlertsScreen.tsx` | Same role access: `admin`, `operator` |
+| Collection point detail | `CPDetail.vue` | `CollectionPointDetailScreen.tsx` | Shared live/history/energy summary/command model |
+| User context | `Nastaveni.vue` | `ProfileScreen.tsx` | Partial overlap via profile + selected domain |
 
----
+Current intentional differences:
 
-## Shared API v2
-
-The mobile app uses the exact same API endpoints as the web app. See [06-api-reference.md](06-api-reference.md) for the full endpoint list.
-
-Key endpoints:
-- `POST /api/v2/auth/login` -- JWT authentication
-- `GET /api/v2/dashboard` -- CP list with live data
-- `GET /api/v2/domains` -- Domain list
-- `GET /api/v2/collection-points/:code/live` -- Realtime power data
-- `GET /api/v2/collection-points/:code/history` -- Historical data
-- `GET /api/v2/collection-points/:code/forecast` -- PV/load forecast
-- `POST /api/v2/commands` -- Control commands
+- web-only: `Uživatelé`
+- mobile-only: `SmartBoxAdminPanel` in the profile area for admins
 
 ---
 
-## Development Approach
+## Key Screens
 
-From the specification (`Postup tvorby mobilni aplikace.md`):
+### DashboardScreen
 
-1. React Native + NestJS backend (or direct API v2)
-2. Shared component library with web app patterns
-3. Offline-first architecture for field technicians
-4. Push notifications for alerts
-5. Estimated timeline: 15-21 days for MVP
+- domain selector using `/domains`
+- selected domain persisted through `/users/me/preferences`
+- KPI summary built from `/dashboard`
+- collection point cards with direct navigation into detail
+
+### CollectionPointDetailScreen
+
+- live telemetry cards (PV, load, grid, battery, SoC)
+- source selector
+- day/week/month/year chart workflows
+- energy summary
+- command buttons for battery / export related actions
+- admin-only SmartBox access helpers where relevant
+
+### ChartsScreen
+
+- selected domain + collection point context
+- day/week/month/year range presets
+- source selection (`effective` and backend-provided alternatives)
+- power, energy and SoC visualization
+- energy KPI cards for the selected period
+
+### AlertsScreen
+
+- alert feed backed by `/alerts`
+- severity-oriented presentation
+- collection point + domain context in each item
+
+### ProfileScreen
+
+- user identity and role
+- selected domain summary
+- logout
+- SmartBox admin panel for admins
 
 ---
 
-## Entity Model
+## API Integration
 
-The mobile entity model (from `ENTITY_MODEL_PGEPILOT_APP.md`, derived from live DB on 2026-03-28) follows the same structure as the web app:
+The mobile app uses the same API v2 as the web app. See [06-api-reference.md](06-api-reference.md) for the full endpoint list.
 
-```
-User -> Customer -> Plant (code, EANd)
-  Plant -> Machine[] (inverter, SN, live data)
-  Plant -> Device[] (BOILER, WALLBOX, POOL, HEATING)
-  Plant -> realtime_state (power flow)
-  Plant -> event_log[] (alerts)
-```
+Current endpoints used by the mobile client:
 
-See [07-entity-model.md](07-entity-model.md) for the full domain model.
+- `POST /api/v2/auth/login`
+- `GET /api/v2/domains`
+- `GET /api/v2/dashboard`
+- `GET /api/v2/summary`
+- `GET /api/v2/users/me/preferences`
+- `PUT /api/v2/users/me/preferences`
+- `GET /api/v2/collection-points/:code`
+- `GET /api/v2/collection-points/:code/battery-mode`
+- `GET /api/v2/collection-points/:code/live`
+- `GET /api/v2/collection-points/:code/history`
+- `GET /api/v2/collection-points/:code/energy-summary`
+- `POST /api/v2/commands`
+- `GET /api/v2/alerts`
+
+Auth model:
+
+- JWT token stored in AsyncStorage
+- token attached as `Authorization: Bearer <token>`
+- local session cleared automatically on `401`
+
+---
+
+## Local Project Notes
+
+Important local files:
+
+- `src/navigation/RootNavigator.tsx`
+- `src/services/api.ts`
+- `src/screens/dashboard/DashboardScreen.tsx`
+- `src/screens/dashboard/CollectionPointDetailScreen.tsx`
+- `src/screens/charts/ChartsScreen.tsx`
+- `src/screens/alerts/AlertsScreen.tsx`
+- `src/screens/profile/ProfileScreen.tsx`
+
+Release and field docs remain relevant:
+
+- `docs/ios-testflight-checklist.md`
+- `docs/android-release-checklist.md`
+- `docs/smartbox-field-checklist.md`
+
+---
+
+## Known Gaps
+
+- mobile documentation had been stale and marked as "planned"; that is no longer true
+- web and mobile do not expose exactly the same information architecture outside the shared customer surface
+- there is no shared package/component library yet; synchronization is currently maintained by convention and code review
