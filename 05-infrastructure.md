@@ -62,10 +62,10 @@ ssh root@pgepilot.cz "docker exec -it pgepilot_servicedesk sh"
 
 | Runtime path | Git state | Notes |
 |--------------|-----------|-------|
-| `pgepilot_service:/var/www/html` | clean `main@a921042` | Service and workers are uniform again after the history/auth follow-up work |
-| `pgepilot_worker1:/var/www/html` | clean `main@a921042` | Uniform with `pgepilot_service` as of 2026-04-12 evening |
-| `pgepilot_worker2:/var/www/html` | clean `main@a921042` | Uniform with `pgepilot_service` as of 2026-04-12 evening |
-| `pgepilot_worker3:/var/www/html` | clean `main@a921042` | Uniform with `pgepilot_service` as of 2026-04-12 evening |
+| `pgepilot_service:/var/www/html` | clean `main@1727f60` | Service and workers are uniform again after the late-evening SmartBox UUID validation deploy |
+| `pgepilot_worker1:/var/www/html` | clean `main@1727f60` | Uniform with `pgepilot_service` as of 2026-04-12 late evening |
+| `pgepilot_worker2:/var/www/html` | clean `main@1727f60` | Uniform with `pgepilot_service` as of 2026-04-12 late evening |
+| `pgepilot_worker3:/var/www/html` | clean `main@1727f60` | Uniform with `pgepilot_service` as of 2026-04-12 late evening |
 | `pgepilot_jobmanager:/home/app` | clean `main@4346047` | Runtime cleanup removed untracked `jobmanager.js.bak` / `jobmanager.js.pre_cleanup`; tracked `jobmanager.jszaloha` remains in repo |
 | `pgepilot_servicedesk:/home/app2/pge-app` | clean `main@3d7e6bb` | Live frontend source tree now matches GitHub `main`; served bundle currently `/assets/index-lGjKNcFm.js` |
 | `pgepilot_servicedesk:/home/app2/servicedesk` | clean `main@1c21bd4` | Admin UI checkout is clean |

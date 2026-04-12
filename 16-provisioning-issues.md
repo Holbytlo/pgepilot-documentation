@@ -169,7 +169,7 @@
 **Dopad:** Chyba se neomezila jen na box configy; je uz i v `cp_connector_auth.machine_ids_json` a `cp_machines.id`.
 **Workaround:** Rucne vygenerovat validni UUID a konzistentne je prepsat v cloudu i na boxu.
 **Oprava:** Zprisnit validaci v `sb-manager` na UUID format pro `machine_id`, `masterMachineId`, `deviceId`, `collectionPointId`, `smartboxId` tam, kde to ma byt UUID, a pri sync/provisioningu failnout driv, nez se to zapise.
-**Status (2026-04-12 pozde vecer):** OTEVRENO, HIGH priority pred dalsim provisioningem.
+**Status (2026-04-12 pozde vecer):** Z VELKE CASTI VYRESENO. Live `sb-manager@21df16b` a `pgepilot-service@1727f60` uz UUID striktne validuji. Rozbita live ID na `sb1 relay` a `sb7 inverter` byla opravena end-to-end v cloudu, `sb-manager` SQLite i na boxech a sync byl znovu uspesne proveden. Samostatny follow-up zustava jen pro `sb13`, ktere se resi mimo tento provisioning wave.
 
 ---
 
@@ -213,4 +213,4 @@ Cil: vsechno v jednom skriptu bez rucnich oprav po prvnim bootu.
 | P11 | Small | STREDNI | ServerAliveInterval default 15 |
 | P12 | Small | STREDNI | StartLimitIntervalSec=0 default |
 | P13 | Small | STREDNI | StartLimit do [Unit] sekce |
-| P16 | Small | VYSOKE | UUID validace pro `machine_id` a oprava uz zapsanych spatnych ID |
+| P16 | ~~Small~~ | ~~VYSOKE~~ | ~~UUID validace pro `machine_id` a oprava uz zapsanych spatnych ID~~ -- HOTOVO pro SB1/SB7, otevreny zbyva uz jen samostatny pripad SB13 |

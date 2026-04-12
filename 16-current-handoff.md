@@ -11,10 +11,10 @@ This file exists because the production state changed across multiple chats on t
 
 Current verified state:
 
-- `pgepilot_service` runtime: `main@a921042`
-- `pgepilot_worker1/2/3` runtime: `main@a921042`
+- `pgepilot_service` runtime: `main@1727f60`
+- `pgepilot_worker1/2/3` runtime: `main@1727f60`
 - `pgepilot_servicedesk:/home/app2/pge-app`: `main@3d7e6bb`
-- `sb-manager` runtime on VPS: `main@ef3261b`
+- `sb-manager` runtime on VPS: `main@21df16b`
 - local SmartBox source repo reference: `sb/devva@45a2fc0`
 - public `app.pgepilot.cz` bundle: `index-lGjKNcFm.js` + `index-DfwOyOjc.css`
 - `task_definitions`: `18=active`, `19=active`, `20=disabled`, `21=disabled`, `22=active`, `23=active`
@@ -22,7 +22,7 @@ Current verified state:
 Important:
 
 - the history cutover and the SmartBox/auth follow-up were not the same deploy
-- service + workers are uniform again on `a921042`
+- service + workers are uniform again on `1727f60`
 - SB1, SB4, and SB7 now use separate SmartBox identity bundles; the old shared auth row is legacy residue only
 - audited key runtime file hashes on SB1, SB4, and SB7 currently match the local `sb/devva@45a2fc0` content
 - auth remains a separate topic; do not mix SmartBox auth changes into history debugging unless auth is the direct root cause
@@ -44,6 +44,9 @@ Important:
 - `task 19` is also healthy in the same window: `1215 completed`, `9 sent`, `0 failed`
 - SB1, SB4, and SB7 now have distinct `login + smartbox_id + collection_point_id + device_id` mappings generated through `sb-manager -> pgepilot-service`
 - current SmartBox runtime expects canonical identity fields; legacy `plantId` is no longer the source of truth for provisioning
+- SmartBox provisioning now enforces UUID validation in both `sb-manager` and `pgepilot-service`
+- bad live IDs on `sb1 relay` and `sb7 inverter` were repaired end-to-end on `2026-04-12 23:16 CEST`
+- `sb-manager -> pgepilot-service` cloud sync was re-run successfully for SB1 and SB7 after the repair
 
 ---
 
@@ -73,24 +76,26 @@ Post-deploy verification:
 
 This should now be treated as stabilized but still worth watching for a few scheduler cycles.
 
-### 2. SmartBox Identity Validation Gap
+### 2. SmartBox Identity Validation Follow-up
 
-Identity split is deployed and active, but validation is still not strict enough:
+The main provisioning gap is now fixed:
 
-- `cp_connector_auth` is now split per box for `sbx_sb1_f9bcdf`, `sbx_sb4_ba8906`, and `sbx_sb7_70862d`
-- live `cp_collection_points`, `cp_devices`, and `cp_machines` rows exist for all three boxes
-- however, `sb-manager/src/routes/admin.js` still accepts `machine_id` as a generic string instead of a UUID
-- two currently provisioned machine IDs are not valid hex UUIDs and have already propagated into box configs and `pge_control`:
-  - `sb1 relay`: `b1bb905b-d285-50e3-98df-g5e62g1gc645`
-  - `sb7 inverter`: `c2cc916c-e396-51f4-a9f0-h6f73h2hd756`
+- `sb-manager/src/routes/admin.js` validates canonical UUID fields (`collectionPointId`, `smartboxId`, `deviceId`, `masterMachineId`, `machineIds`, nested `machine_id`)
+- `pgepilot-service/app/smartbox_auth.php` enforces the same UUID rules on the provisioning endpoint, so direct API calls cannot bypass the guard
+- repaired live machine IDs:
+  - `sb1 relay`: `8528b7a4-b3e9-4518-9d02-5faf395927c7`
+  - `sb7 inverter`: `ceefa067-dc8a-463c-b3ca-99b0b17dc510`
+- repaired locations:
+  - `pge_control.cp_machines`
+  - `pge_control.cp_connector_auth.machine_ids_json`
+  - `pge_control.cp_connectors.config_json`
+  - `pgepilot.rpc_kv_chlum_zs`
+  - `sb-manager` SQLite (`sb_devices.provisioning_machines_json`, `sb_cloud_identities.*machine*`)
+  - live box configs on SB1 and SB7 (`rpc_client_config.yaml`, `smartbox_config.yaml`, `devices_config.yaml`)
 
-Before the next provisioning wave, tighten validation in `sb-manager` and replace those bad IDs consistently in:
+Remaining follow-up:
 
-- `cp_machines`
-- `cp_connector_auth.machine_ids_json`
-- `rpc_client_config.yaml`
-- `smartbox_config.yaml`
-- `devices_config.yaml`
+- `sb13` still has its own invalid historical `machine_id` in live state and should be repaired in the separate sb13 thread before reprovisioning that device again
 
 ### 3. Auth context
 
