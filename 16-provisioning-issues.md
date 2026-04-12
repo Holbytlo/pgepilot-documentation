@@ -169,7 +169,7 @@
 **Dopad:** Chyba se neomezila jen na box configy; je uz i v `cp_connector_auth.machine_ids_json` a `cp_machines.id`.
 **Workaround:** Rucne vygenerovat validni UUID a konzistentne je prepsat v cloudu i na boxu.
 **Oprava:** Zprisnit validaci v `sb-manager` na UUID format pro `machine_id`, `masterMachineId`, `deviceId`, `collectionPointId`, `smartboxId` tam, kde to ma byt UUID, a pri sync/provisioningu failnout driv, nez se to zapise.
-**Status (2026-04-12 pozde vecer):** Z VELKE CASTI VYRESENO. Live `sb-manager@21df16b` a `pgepilot-service@1727f60` uz UUID striktne validuji. Rozbita live ID na `sb1 relay` a `sb7 inverter` byla opravena end-to-end v cloudu, `sb-manager` SQLite i na boxech a sync byl znovu uspesne proveden. Samostatny follow-up zustava jen pro `sb13`, ktere se resi mimo tento provisioning wave.
+**Status (2026-04-12 pozde vecer):** Z VELKE CASTI VYRESENO. Live `sb-manager@21df16b` a `pgepilot-service@1727f60` uz UUID striktne validuji. Rozbita live ID na `sb1 relay` a `sb7 inverter` byla opravena end-to-end v cloudu, `sb-manager` SQLite i na boxech a sync byl znovu uspesne proveden. Primy live probe na `https://service.pgepilot.cz/api/v2/smartbox-auth/provision` mimo `sb-manager` vraci pro nevalidni `machine_id` korektne `HTTP 400` s chybou `machines[0].machine_id must be a valid UUID`. Samostatny follow-up zustava jen pro `sb13`, ktere se resi mimo tento provisioning wave.
 
 ---
 

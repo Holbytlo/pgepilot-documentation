@@ -82,6 +82,7 @@ The main provisioning gap is now fixed:
 
 - `sb-manager/src/routes/admin.js` validates canonical UUID fields (`collectionPointId`, `smartboxId`, `deviceId`, `masterMachineId`, `machineIds`, nested `machine_id`)
 - `pgepilot-service/app/smartbox_auth.php` enforces the same UUID rules on the provisioning endpoint, so direct API calls cannot bypass the guard
+- direct live probe to `POST /api/v2/smartbox-auth/provision` now confirms invalid `machine_id` is rejected with `HTTP 400`
 - repaired live machine IDs:
   - `sb1 relay`: `8528b7a4-b3e9-4518-9d02-5faf395927c7`
   - `sb7 inverter`: `ceefa067-dc8a-463c-b3ca-99b0b17dc510`
