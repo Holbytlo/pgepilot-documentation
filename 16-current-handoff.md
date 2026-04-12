@@ -7,20 +7,22 @@
 
 ## Live Snapshot
 
-This file exists because the production state changed across multiple chats on the same day and the runtime is no longer fully uniform.
+This file exists because the production state changed across multiple chats on the same day and follow-up work must continue from one consistent handoff.
 
 Current verified state:
 
-- `pgepilot_service` runtime: `main@a30c78c` (`fix: stabilize goodwe historical backfill`)
-- `pgepilot_worker1/2/3` runtime: `main@a30c78c` (`fix: stabilize goodwe historical backfill`)
+- `pgepilot_service` runtime: `main@a921042`
+- `pgepilot_worker1/2/3` runtime: `main@a921042`
 - `pgepilot_servicedesk:/home/app2/pge-app`: `main@3d7e6bb`
+- `sb-manager` runtime on VPS: `main@ef3261b`
 - public `app.pgepilot.cz` bundle: `index-lGjKNcFm.js` + `index-DfwOyOjc.css`
 - `task_definitions`: `18=active`, `19=active`, `20=disabled`, `21=disabled`, `22=active`, `23=active`
 
 Important:
 
 - the history cutover and the SmartBox/auth follow-up were not the same deploy
-- the runtime split was closed on 2026-04-12 by deploying `a30c78c` to `service` and all `worker1/2/3`
+- service + workers are uniform again on `a921042`
+- SB1, SB4, and SB7 now use separate SmartBox identity bundles; the old shared auth row is legacy residue only
 - auth remains a separate topic; do not mix SmartBox auth changes into history debugging unless auth is the direct root cause
 
 ---
@@ -36,6 +38,8 @@ Important:
 - web app already uses the new history `usage` contract
 - GoodWe historical backfill now ingests one day at a time instead of one 7-day API payload per plant
 - reverse backfill now stores a `plant_config.goodwe_reverse_empty_before_date` marker when the chunk immediately before current `min_date` is empty, so plants do not retry the same empty reverse window forever
+- SB1, SB4, and SB7 now have distinct `login + smartbox_id + collection_point_id + device_id` mappings generated through `sb-manager -> pgepilot-service`
+- current SmartBox runtime expects canonical identity fields; legacy `plantId` is no longer the source of truth for provisioning
 
 ---
 
@@ -72,6 +76,7 @@ For this handoff:
 - do not treat auth as part of the history-cutover task
 - do not silently change auth contracts while debugging history
 - if a task is about SB payload consistency, stay in SB/service payload scope unless auth is explicitly the bug
+- if a task is about new SmartBox provisioning, use the `cp_*` identity model (`collection_point_id`, `device_id`, `smartbox_id`, `machine_id`) and do not write new legacy `plants/machines` assumptions back into docs or code
 
 ---
 

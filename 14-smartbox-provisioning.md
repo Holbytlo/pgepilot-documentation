@@ -156,7 +156,7 @@ cat /var/lib/energity/install/status.json
 
 ## Faze 5: Instalace aplikacniho stacku
 
-Bootstrap nainstaluje jen infrastrukturu (tunel, ops-agent, watchdog). Aplikacni kod (device-controller, sensor-db, atd.) se nasazuje zvlast.
+Bootstrap nainstaluje jen infrastrukturu (tunel, ops-agent, watchdog). Aplikacni kod (device-controller, local-db, atd.) se nasazuje zvlast.
 
 ### Postup (rsync z Macu):
 
@@ -200,6 +200,54 @@ ssh -J limited@ra-energity.cz -p <SSH_PORT> root@127.0.0.1 "
 | sb5 | 5 | 20040 | 20042 |
 | sb6 | 6 | 20050 | 20052 |
 | sb7 | 7 | 20060 | 20062 |
+
+### 5b) LCD dashboard (autodetekce podle realneho HW)
+
+Pro vsechny podporovane platformy se ma pouzivat jeden dashboard runtime na boxu:
+
+- `/opt/energity/sb-ops-agent/display_dashboard.py`
+- `energity-display.service`
+
+Pravidlo:
+
+- provisioning pripravi kernel overlay a balicky pro konkretni fyzicky displej
+- samotny dashboard si pri startu sam najde framebuffer, rozliseni a touch input, ktere jsou na stroji skutecne pritomne
+- v aplikaci se nesmi vybirat displej podle nazvu boxu typu `sb4` nebo `sb13`
+
+**CoreMP135 / M5Stack (`sb4`, `sb7`)**
+
+- vestaveny displej ILI9342C, `320x240`
+- framebuffer typicky `/dev/fb1`
+- touch pres `evdev`
+- neni potreba extra konfigurace v aplikaci
+
+**Raspberry Pi + 3.5" TFT HAT (`sb13` class)**
+
+- ILI9486, `480x320`
+- framebuffer muze byt `/dev/fb0` nebo `/dev/fb1` podle rotace
+- touch primarne pres SPI polling, fallback `evdev`
+- nutny overlay `tft35a` z `goodtft/LCD-show`
+
+Minimalni kroky na RPi displeji:
+
+```bash
+# 1. Zkopirovat overlay
+cp LCD-show/usr/tft35a-overlay.dtb /boot/firmware/overlays/tft35a.dtbo
+
+# 2. Pridat do /boot/firmware/config.txt
+dtparam=spi=on
+dtoverlay=tft35a:rotate=90
+
+# 3. Po rebootu nainstalovat deps
+apt install -y fonts-dejavu-core python3-dev libopenjp2-7
+/opt/energity/sb/.venv/bin/pip install Pillow spidev RPi.GPIO evdev
+```
+
+Poznamky:
+
+- nepouzivat `piscreen` ani `fbtft` overlay na kernelu 6.12; crashuji na GPIO konfliktu
+- pokud dashboard nenajde podporovany displej, ma skoncit ciste a nesmi rozbit ostatni SmartBox sluzby
+- navigace ma byt jednotna: dole tecky + viditelne sipky `<` a `>` po stranach
 
 ---
 
@@ -285,7 +333,7 @@ devices:
 Editovat `/opt/energity/sb/rpc_client/rpc_client_config.yaml`:
 ```yaml
 pgepilot:
-  auth_url: "https://auth.pgepilot.cz"      # legacy default
+  auth_url: "https://service.pgepilot.cz"   # current default for new/migrated boxes
   rpc_url: "https://service.pgepilot.cz/rpc"
 
 credentials:
@@ -294,29 +342,36 @@ credentials:
 
 identifiers:
   smartbox_id: "<uuid>"
-  plant_id: "<uuid>"
+  collection_point_id: "<uuid>"
+  device_id: "<uuid>"
   master_machine_id: "<uuid>"
 ```
 
-Canary rollout rule (verified 2026-04-12):
-- default for existing boxes remains `https://auth.pgepilot.cz`
-- only explicitly migrated boxes should switch `pgepilot.auth_url` to `https://service.pgepilot.cz`
-- migrated boxes currently are SB1, SB4, and SB7
+Auth rollout rule (verified 2026-04-12):
+- default for new provisioning is `https://service.pgepilot.cz`
+- `https://auth.pgepilot.cz` remains only as legacy compatibility path for older boxes that are not yet migrated
+- SB1, SB4, and SB7 already use `https://service.pgepilot.cz`
 
 Current caveat:
-- SB1, SB4, and SB7 currently share one cloud auth identity during home/dev testing
-- before separate customer deployments, each box needs its own connector/auth identity in `pge_control.cp_connector_auth`
+- every SmartBox must keep its own connector/auth identity in `pge_control.cp_connector_auth`
+- old shared row `sbx_deye25` may remain in DB as legacy residue, but active boxes must not use it
 
 ### 6c) Identita SmartBoxu (smartbox_config.yaml)
 
-Editovat `/opt/energity/sb/communication_controller/smartbox_config.yaml` — smartbox_id, plant info.
+Editovat `/opt/energity/sb/communication_controller/smartbox_config.yaml`:
+
+- `smartbox.id`
+- `smartbox.collection_point_id`
+- `smartbox.device_id`
+- `machines[].machine_id`
+- `device_to_machine`
 
 ### 6d) Restart sluzeb po konfiguraci:
 
 ```bash
 systemctl restart energity-device-controller energity-comm-controller \
   energity-rpc-client energity-config-api energity-web-interface \
-  energity-sensor-db energity-logs-db
+  energity-local-db energity-logs-db
 ```
 
 ---
@@ -381,7 +436,7 @@ ssh -J limited@ra-energity.cz -p <SSH_PORT> root@127.0.0.1 \
 - [ ] Watchdog: **enabled=true** (v /health response)
 - [ ] Device-controller: **1 device initialized** (v journalctl)
 - [ ] sensor_data.db: **roste** (data z inverteru tece)
-- [ ] rpc-client: **login 200 OK** proti nakonfigurovanemu auth endpointu (`auth.pgepilot.cz` legacy nebo `service.pgepilot.cz` pro migrovany box)
+- [ ] rpc-client: **login 200 OK** proti nakonfigurovanemu auth endpointu (`service.pgepilot.cz` pro nove/migrovane boxy, `auth.pgepilot.cz` jen pro legacy boxy)
 - [ ] ra-tunnel: **active** (zarizeni bude dostupne vzdalene)
 - [ ] WiFi/Ethernet: **stabilni** (ping na ra-energity.cz funguje)
 
@@ -419,7 +474,9 @@ ssh -J limited@ra-energity.cz -p <SSH_PORT> root@127.0.0.1 \
    - `rpc_client_config.yaml` (cloud credentials)
    - `smartbox_config.yaml` (identita SmartBoxu)
 
-4. **VPS sshd ma ClientAliveInterval=30** — mrtve tunely se automaticky uklidi do 90s. Netreba rucne cistit (od 2026-04-12).
+4. **Dashboard musi autodetekovat lokalni displej.** Provisioning pripravi HW a balicky, ale aplikace nesmi mit per-box hardcoded volbu typu displeje.
+
+5. **VPS sshd ma ClientAliveInterval=30** — mrtve tunely se automaticky uklidi do 90s. Netreba rucne cistit (od 2026-04-12).
 
 ---
 

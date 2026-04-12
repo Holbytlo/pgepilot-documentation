@@ -253,7 +253,7 @@ ssh -J limited@ra-energity.cz -p <SSH_PORT> root@127.0.0.1 \
 ssh -J limited@ra-energity.cz -p <SSH_PORT> root@127.0.0.1 \
   "systemctl stop energity-device-controller energity-comm-controller \
    energity-rpc-client energity-config-api energity-web-interface \
-   energity-sensor-db energity-logs-db"
+   energity-local-db energity-logs-db"
 
 # 3. Rsync from Mac (excludes preserve per-machine configs and data)
 rsync -az --delete \
@@ -274,7 +274,7 @@ ssh -J limited@ra-energity.cz -p <SSH_PORT> root@127.0.0.1 "
   chown -R energity:energity /opt/energity/sb/
   chown -R root:root /opt/energity/sb/.venv/
   systemctl reset-failed 'energity-*'
-  systemctl start energity-sensor-db energity-logs-db
+  systemctl start energity-local-db energity-logs-db
   sleep 2
   systemctl start energity-device-controller energity-comm-controller \
     energity-config-api energity-web-interface energity-rpc-client"

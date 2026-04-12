@@ -41,7 +41,7 @@ SmartBox (SB) is an edge computing device (Raspberry Pi) installed at a customer
 
 ### Runtime Snapshot (verified 2026-04-12)
 
-- `sb-manager`: clean `main@29ba0df`, PM2 online, 161 total restarts, current uptime ~38h
+- `sb-manager`: clean `main@ef3261b`, PM2 online, live cloud identity sync for SmartBox provisioning is working
 - `sb-router`: clean `main@4c4a7ad`, systemd active
 - `pgepilot-smartbox-sim`: PM2 online on port 5001
 
@@ -167,7 +167,7 @@ Verified active SSH ports on VPS in this session:
 | Service | Port | Bind | Tech | Purpose |
 |---------|------|------|------|---------|
 | energity-device-controller | 5010 | 127.0.0.1 | Python/Flask | Modbus polling, REST API for devices |
-| energity-sensor-db | 5011 | 127.0.0.1 | Python/Flask | SQLite sensor data storage |
+| energity-local-db | 5011 | 127.0.0.1 | Python/Flask | SQLite sensor data storage |
 | energity-logs-db | 5012 | 127.0.0.1 | Python/Flask | SQLite log storage |
 | energity-config-api | 3000 | 127.0.0.1 | Python/Flask | Device configuration |
 | energity-web-interface | 5000 | 127.0.0.1 | Python/Flask | User/service web UI |
@@ -233,8 +233,9 @@ Same as SB1 layout (7 energity-* services + sb-ops-agent + ra-tunnel + nginx), a
 ### SmartBox auth rollout status (verified 2026-04-12)
 
 - SB1, SB4, and SB7 now authenticate against `https://service.pgepilot.cz`
+- SB1, SB4, and SB7 now each have their own SmartBox cloud identity bundle: `login + smartbox_id + collection_point_id + device_id`
 - legacy `https://auth.pgepilot.cz` remains active for the remaining boxes
-- current home/dev rollout still uses one shared SmartBox cloud identity for SB1/SB4/SB7; this is functional but must be split before independent production deployments
+- old shared auth row (`sbx_deye25`) may still exist in `pge_control.cp_connector_auth`, but current boxes no longer use it
 
 ### GoodWe Modbus TCP collision warning
 
@@ -254,6 +255,33 @@ sb4 and sb1 share the same LAN and the same GoodWe inverter (192.168.0.70). **On
 Deye driver is opt-in: only activates when `devices_config.yaml` specifies `device_driver: DeyeInverterDriver`.
 
 Smoke test passed on sb4 (2026-04-11): imports OK, 36 registers parsed, 13 commands loaded, 4 poll functions loaded, connect failure to TEST-NET-1 IP was graceful (no crash).
+
+---
+
+## LCD Dashboard / Display Support
+
+SmartBox LCD dashboard must use the display hardware that is physically present on the machine. The application must not select the display type by box label such as `sb4` or `sb13`.
+
+### Runtime rule
+
+- one shared dashboard runtime is deployed on the box as `/opt/energity/sb-ops-agent/display_dashboard.py`
+- at startup it must autodetect framebuffer driver, framebuffer path, panel resolution, and touch input that actually exist on the device
+- provisioning prepares kernel overlay and dependencies for the hardware, but the app itself must not hardcode a per-box display choice
+- if no supported display is present, `energity-display.service` should fail cleanly without affecting the core SB services
+
+### Supported display hardware
+
+| Platform | Display | Framebuffer | Touch | Provisioning note |
+|----------|---------|-------------|-------|-------------------|
+| M5Stack CoreMP135 (`sb4`, `sb7`) | Built-in ILI9342C, 320x240 | `/dev/fb1` | `evdev` swipe, usually `/dev/input/event0` | No extra display config; driver is loaded by the board image |
+| Raspberry Pi + 3.5" TFT HAT (`sb13` class) | ILI9486, 480x320 | `/dev/fb0` or `/dev/fb1` | Primary: SPI polling on `spidev0.1`; fallback: `evdev` | Requires `tft35a` overlay and display dependencies during provisioning |
+
+### UI conventions
+
+- 3 pages: `Status`, `Energy Flow`, `Data`
+- bottom navigation uses dots plus visible `<` and `>` arrows on both sides as a navigation hint
+- alias header comes from `/opt/energity/sb-ops-agent/device_alias.txt`
+- dashboard should detect both `fb0` and `fb1` by driver identity, not by fixed device number
 
 ---
 
@@ -339,8 +367,9 @@ Communication with PgePilot Cloud via JSON-RPC 2.0 over HTTPS.
 - Credentials configured in `rpc_client_config.yaml`
 
 Current production auth split:
-- Legacy/default path: `https://auth.pgepilot.cz`
-- Canary path (verified 2026-04-12): `https://service.pgepilot.cz` using the same `/login`, `/refresh-token`, and `/verify-token` contract
+- Current/default path for new and migrated SmartBoxes: `https://service.pgepilot.cz`
+- Legacy compatibility path for older boxes not yet migrated: `https://auth.pgepilot.cz`
+- Both use the same `/login`, `/refresh-token`, and `/verify-token` contract
 
 ### 4. Communication Controller (no dedicated port)
 
@@ -368,8 +397,8 @@ Sensor DB (:5011) -- SQLite, 1-day retention
 Communication Controller -- field mapping, poll/send loops
   | smartboxSendData (every 5s)
   v
-RPC Client (:3012) -- FastAPI, JWT auth, JSON-RPC 2.0
-  | HTTPS auth to auth.pgepilot.cz (legacy) or service.pgepilot.cz (canary)
+RPC Client (:3001) -- FastAPI, JWT auth, JSON-RPC 2.0
+  | HTTPS auth to service.pgepilot.cz (current) or auth.pgepilot.cz (legacy compatibility)
   | HTTPS RPC to service.pgepilot.cz/rpc
   v
 PgePilot Cloud -- stores in rpc_kv, processes telemetry
