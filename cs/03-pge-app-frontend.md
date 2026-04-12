@@ -1,7 +1,7 @@
 # 03 -- PGE App Frontend (CZ)
 
 > Zdrojovy dokument: [../03-pge-app-frontend.md](../03-pge-app-frontend.md) (anglicky, AI-first)
-> Posledni aktualizace: 2026-04-11
+> Posledni aktualizace: 2026-04-12
 
 ---
 
@@ -11,6 +11,7 @@
 - **Technologie**: Vue 3 + TypeScript + Vite + Tailwind (CDN) + Chart.js.
 - **9 aktualnich rout**: login, prehled, cp-detail, domeny, grafy, instalace, alerty, uzivatele, nastaveni.
 - **Sdilena zakladni UI vrstva s mobilem**: `Prehled`, `Domeny`, `Grafy`, `Instalace`, `Alerty`, detail lokality a uzivatelsky kontext.
+- **Historie a reporting**: frontend dnes cte `default_history_usage`, `default_history_dataset` a pri volani historie posila kombinaci `dataset + usage`.
 - **Aktualni `main`** nema samostatnou routu `predikce` ani hostname-based theming v `main.ts`.
 
 ---

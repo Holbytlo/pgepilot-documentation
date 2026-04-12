@@ -1,7 +1,7 @@
 # 08 -- Architecture Overview
 
 > System-level architecture, data flows, component interactions, and development phases.
-> Last updated: 2026-04-04
+> Last updated: 2026-04-12
 
 ---
 
@@ -66,8 +66,9 @@ Worker1 (PHP, port 6001)
   | Executes task:
   |   - Health Check: calls GoodWe/SolaX API (reads from cache)
   |   - Collect Data: calls API, stores in power_rt + realtime_state
+  |   - SmartBox Push: stores raw rpc_kv event, then transforms to power_1m / energy_15m
   |   - Control Relays: evaluates strategy, toggles Supla relays
-  |   - Compute Energy: aggregates power_rt -> energy_15m
+  |   - Compute Energy: prefers power_1m, falls back to power_rt, writes lineage -> energy_15m
   v
 Result -> stored in pgepilot/pge_control/pge_data databases
 ```
@@ -132,16 +133,16 @@ Raw response: 57 registers at 1-minute resolution
   |   battery_power_w = V * I
   |   load = PV + Batt - Meter
   v
-INSERT INTO {code}_power_1m (pge_data)
+INSERT INTO {code}_power_1m (pge_data, raw/source)
   |
-  | Aggregate 1min -> 5min
+  | Reporting resolver / aggregation profile
   v
-INSERT INTO {code}_power_bf (pge_data, includes battery_soc2_pct)
+Serve {code}_power_bf profile (5m-style) from canonical history
 
 Additionally:
   getPlantPowerChartAll() -> GetChartByPlant (12 curves)
     -> per-phase meter/load + SOC2
-    -> power_bf tables
+    -> enriches reporting metadata / drilldown, not the canonical history contract
 ```
 
 ### Discovery Flow (added 2026-04-04)
@@ -184,6 +185,29 @@ Updates cp_collection_points + cp_machines metadata
 
 All three clients use the SAME API endpoints. Energity Web may add onboarding endpoints.
 
+### History Dataset Resolution
+
+```
+Client (web / mobile / admin)
+  |
+  | GET /collection-points/{code} -> defaults + source options + history usage options
+  | GET /collection-points/{code}/history?dataset=...&usage=...&source=...
+  v
+SourcePolicyService
+  |
+  | resolveHistoryRequest(dataset, usage)
+  | -> dataset_registry
+  | -> data_source_registry
+  v
+pge_data dataset selected for that use-case
+```
+
+Design intent:
+
+- raw/source datasets preserve connector truth
+- derived/reporting datasets serve customer reporting and analytics
+- clients express `usage` (what they need) and optionally `dataset` (what aggregation they want)
+
 ---
 
 ## Development Phases
@@ -212,8 +236,8 @@ Physical devices (GoodWe Modbus, Supla relays)
 ### Phase B: New Database (pge_control + pge_data) -- DONE
 
 - pge_control: 18+ tables (entities, commands, events, configs)
-- pge_data: 81 tables (per-plant time series + forecast)
-- Backfill from legacy completed
+- pge_data: 81 tables (raw/source + reporting + forecast datasets)
+- Legacy coexistence still active; history model is being normalized around raw/source inputs and derived/reporting outputs
 - Realtime sync running (cron 1min + 5min)
 - Legacy NOT disabled (coexistence)
 
@@ -244,9 +268,13 @@ LEGACY (running, NOT disabled):       NEW (running alongside):
     event_log ··············>              cp_events (empty)
 
   pgepilot_data DB                       pge_data DB
-    {code}_power_5m ········>              {code}_power_1m (57 registers, 1min)
-    {code}_energy_5m ·······>              {code}_energy_15m
-                                           {code}_power_bf (aggregated from 1m)
+    {code}_power_5m ········>              {code}_power_1m / {code}_power_rt (raw/source)
+    {code}_energy_5m ·······>              {code}_power_bf / {code}_power_1h / {code}_power_1d (derived/reporting)
+                                           {code}_energy_15m
+
+  pge_control registry layer
+    dataset_registry + data_source_registry
+      -> resolves history/reporting use-cases to the right dataset
 
   Legacy API v1 (still running)          API v2 (primary)
 ```

@@ -14,9 +14,9 @@ Technicka dokumentace pro ekosystem PGEPilot -- platforma pro monitoring a rizen
 | **PgePilot Cloud** | Cloudovy monitoring, 23 aktivnich plantu, 7 Docker kontejneru | Produkce |
 | **SmartBox / SBC** | Edge Raspberry Pi, Modbus rizeni invertoru, reverzni SSH | Produkce (monitoring), Rozpracovano (rizeni) |
 | **PGE App** | Vue 3 webovy frontend na app.pgepilot.cz | Produkce |
-| **Mobilni app** | React Native cross-platform (planovana) | Specifikace |
+| **Mobilni app** | React Native cross-platform klient sdilejici API v2 s webem | Implementovane MVP, aktivni vyvoj |
 | **Infrastruktura** | 3 servery (Hetzner), MariaDB, Docker, nginx | Produkce |
-| **API v2** | 36+ REST endpointu, JWT autentizace, predikce | Produkce |
+| **API v2** | 36+ REST endpointu, JWT autentizace, predikce, usage-based resolver historie | Produkce |
 
 ---
 
@@ -27,7 +27,7 @@ cs/README.md                     <-- Jste tady
 cs/01-pgepilot-cloud.md          <-- Cloudova platforma
 cs/02-smartbox-sbc.md            <-- SmartBox edge system
 cs/03-pge-app-frontend.md        <-- Vue3 webova aplikace
-cs/04-mobile-app.md              <-- Planovana mobilni aplikace
+cs/04-mobile-app.md              <-- React Native mobilni aplikace (implementovane MVP)
 cs/05-infrastructure.md          <-- Servery, Docker, databaze, sit
 cs/06-api-reference.md           <-- Vsechny API endpointy
 cs/07-entity-model.md            <-- Domenovy model a DB schema

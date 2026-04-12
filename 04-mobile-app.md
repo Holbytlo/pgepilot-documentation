@@ -1,7 +1,7 @@
 # 04 -- Mobile Application
 
 > React Native cross-platform app for PGE Pilot on iOS and Android.
-> Last updated: 2026-04-11
+> Last updated: 2026-04-12
 
 ---
 
@@ -141,6 +141,12 @@ Current endpoints used by the mobile client:
 - `GET /api/v2/collection-points/:code/energy-summary`
 - `POST /api/v2/commands`
 - `GET /api/v2/alerts`
+
+History/reporting contract used by the current mobile clients:
+
+- collection point detail returns `source_options`, `history_usage_options`, `default_source`, `default_history_dataset`, and `default_history_usage`
+- charts keep explicit aggregation dataset selection (`power_bf`, `power_1h`, `power_1d`) and pass `usage` so backend policy can resolve the correct reporting profile
+- energy summary requests use `usage=customer_history_energy`
 
 Auth model:
 

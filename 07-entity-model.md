@@ -1,7 +1,7 @@
 # 07 -- Entity Model
 
 > Domain model for the Energity/PgePilot system: new (pge_control) and legacy (pgepilot) schemas.
-> Last updated: 2026-04-04
+> Last updated: 2026-04-12
 
 ---
 
@@ -12,7 +12,7 @@ Legacy databases (pgepilot, pgepilot_data) are NEVER modified.
 New entity model goes into SEPARATE databases:
 
   pge_control  -- cp_* entities, commands, events, configs, realtime
-  pge_data     -- new time series (power_1m, energy_15m, forecast)
+  pge_data     -- time-series datasets (raw/source, derived/reporting, forecast)
   pgep_tasks   -- task management (shared, no changes)
 
 Legacy and new systems coexist. Legacy is NOT disabled until new system is fully operational.
@@ -71,8 +71,17 @@ Total: **28 tables** in pge_control.
 - `cp_` prefix on tables = "control-plane" namespace (NOT abbreviation for Collection Point)
 - `cp_collection_points` = Collection Point (site)
 - `cp_control_points` = Control Point (signal on a Machine)
-- `{collection_point_code}_power_1m` = time series table per Collection Point
+- `{collection_point_code}_power_1m` = common physical table name for 1-minute raw/source history where available
 - `tpl_power_1m` = template table used by CREATE TABLE LIKE for new plants
+- `{collection_point_code}_energy_15m` = canonical 15-minute energy table with lineage columns
+- physical table names still follow per-CP convention, but API/runtime resolution is driven by `dataset_registry` + `data_source_registry`, not by name guessing alone
+
+### Dataset Ownership and Lineage
+
+- raw/source datasets belong to an owner entity (`collection_point`, `device`, or `machine`) and a concrete connector instance
+- derived/reporting datasets belong to the owner entity and use-case, but each row should still preserve connector lineage
+- `dataset_registry` describes what a dataset is, who owns it, its granularity, and physical storage
+- `data_source_registry` describes which dataset should be used for a given runtime scope (`effective_history`, `raw_history`, `forecast`, `effective_realtime`, ...)
 
 ---
 
@@ -143,7 +152,7 @@ CREATE TABLE realtime_state (
   pv_w           INT,            -- PV production (W)
   load_w         INT,            -- Load consumption (W)
   grid_w         INT,            -- Grid power (+ export, - import)
-  battery_w      INT,            -- Battery (+ charge, - discharge)
+  battery_w      INT,            -- Battery (+ discharge, - charge)
   soc_pct        DECIMAL(5,2),   -- State of Charge (%)
   severity       TINYINT DEFAULT 0,  -- 0=OK, 1-4 escalating
   updated_at     DATETIME
@@ -221,22 +230,28 @@ User -> Customer -> Plant (code, EANd, pvCapacity, batteryCapacity)
 ## Time Series Databases
 
 ### pge_data (new)
-Per Collection Point (using `code` as prefix):
-- `tpl_power_1m` -- template table (57 register columns + 5 computed columns)
-- `{code}_power_1m` -- 1-minute power readings (57 registers from GetStationHistoryDataChart + 5 computed: pv_power_w, battery_power_w, load, grid_export_w, grid_import_w). Currently 17 GoodWe plant tables exist.
-- `{code}_energy_15m` -- 15-minute energy aggregation (Wh)
-- `{code}_export_alloc_15m` -- 15-minute export allocation
-- `{code}_power_bf` -- backfill power data (aggregated from power_1m). `battery_soc2_pct` column added to all power_bf tables (2026-04-04).
+Per collection point (using `code` as prefix) the database currently contains a mix of canonical/source storage and reporting views or derived datasets:
 
-SmartBox tables:
-- `va_sb_power_rt` -- SmartBox realtime power data (plant VA_SB)
-- `va_sb_energy_15m` -- SmartBox 15-minute energy aggregation (plant VA_SB)
+- raw/source history:
+  - `tpl_power_1m` -- template table for high-resolution source history
+  - `{code}_power_1m` -- canonical minute history fed by GoodWe backfill, SmartBox push/pull, or realtime recording
+  - `{code}_power_rt` -- realtime rolling power series
+- derived/reporting history:
+  - `{code}_power_bf` -- optional physical 5-minute-style reporting table; when absent, API resolves the same profile from `{code}_power_1m`
+  - `{code}_power_1h` / `{code}_power_1d` -- coarser reporting aggregations or virtual reporting profiles
+  - `{code}_energy_15m` -- canonical 15-minute energy aggregation with source lineage columns
+  - `{code}_export_alloc_15m` -- 15-minute export allocation
+- forecast:
+  - `pv_forecast`
+  - `load_forecast`
+  - `weather_forecast`
+  - `forecast_correction_log`
 
-Global:
-- `pv_forecast` -- PV forecast data
-- `load_forecast` -- Load forecast data
-- `weather_forecast` -- Weather forecast data
-- `forecast_correction_log` -- Adaptive correction history
+The important rule is not the suffix alone, but the dataset role:
+
+- raw/source datasets are the source of truth from connectors
+- derived/reporting datasets are serving datasets for UI/reporting/analytics
+- API resolution for history/reporting goes through `dataset_registry` and `data_source_registry`
 
 Total: 81+ tables (growing as new plants are added).
 

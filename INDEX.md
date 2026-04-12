@@ -14,12 +14,12 @@
 | 01 | [01-pgepilot-cloud.md](01-pgepilot-cloud.md) | Cloud platform: 7 Docker containers, 23 plants, task system, forecast, data sync, git repos |
 | 02 | [02-smartbox-sbc.md](02-smartbox-sbc.md) | SmartBox edge: VPS, Raspberry Pi, 4 microservices, Modbus polling, TOU engine, SSH tunnels |
 | 03 | [03-pge-app-frontend.md](03-pge-app-frontend.md) | Vue3 SPA: routing, components, theming, build/deploy, file structure |
-| 04 | [04-mobile-app.md](04-mobile-app.md) | Planned React Native app: screens, entity model, shared API v2 |
+| 04 | [04-mobile-app.md](04-mobile-app.md) | React Native app: screens, shared API v2, charts and detail parity with web |
 | 05 | [05-infrastructure.md](05-infrastructure.md) | 3 servers, Docker containers, ports, firewall, DB overview, deploy procedures, backups |
-| 06 | [06-api-reference.md](06-api-reference.md) | API v2 (36+ endpoints), legacy v1, Email API, RPC sb.* methods, external connectors |
-| 07 | [07-entity-model.md](07-entity-model.md) | Domain model: new (pge_control) + legacy (pgepilot), DDL, mapping, separation rules |
-| 08 | [08-architecture-overview.md](08-architecture-overview.md) | System diagrams, phase plan (A-D), data flows, legacy coexistence |
-| 09 | [09-development-roadmap.md](09-development-roadmap.md) | Production state, completed milestones, priority 1-4 items with timelines |
+| 06 | [06-api-reference.md](06-api-reference.md) | API v2 (36+ endpoints), history `usage` resolver, legacy v1, Email API, RPC sb.* methods |
+| 07 | [07-entity-model.md](07-entity-model.md) | Domain model: new (pge_control) + legacy (pgepilot), dataset ownership, lineage, separation rules |
+| 08 | [08-architecture-overview.md](08-architecture-overview.md) | System diagrams, raw -> derived data flows, usage-based history resolution, legacy coexistence |
+| 09 | [09-development-roadmap.md](09-development-roadmap.md) | Production state, completed milestones, history-model normalization work, priority 1-4 items |
 | 10 | [10-security.md](10-security.md) | Critical/medium risks, hardening plan, RBAC status |
 | 11 | [11-email-api.md](11-email-api.md) | POST /sendEmail: profiles, SMTP config, code examples |
 | 12 | [12-forecasting.md](12-forecasting.md) | PV forecast, load forecast, weather, adaptive correction, planned Open-Meteo physical model |

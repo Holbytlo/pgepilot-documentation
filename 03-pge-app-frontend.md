@@ -1,7 +1,7 @@
 # 03 -- PGE App (Web Frontend)
 
 > Vue 3 single-page application for PV installation monitoring at app.pgepilot.cz.
-> Last updated: 2026-04-10
+> Last updated: 2026-04-12
 
 ---
 
@@ -15,9 +15,9 @@ PGE App is a client-facing Vue 3 SPA for monitoring PV installations. It runs al
 | Port | 3060 |
 | PM2 process | pge-app (id 2) |
 | Container | pgepilot_servicedesk |
-| Git repo | Holbytlo/pge-app (GitHub `main` = `05e61e0`; production source checkout is now clean on the same commit) |
+| Git repo | Holbytlo/pge-app (GitHub `main` = `3d7e6bb`; production source checkout is now clean on the same commit) |
 | Tech stack | Vue 3 + TypeScript + Vite 8 + Tailwind CSS (CDN) + Chart.js 4 (CDN) |
-| Live bundle | `/assets/index-Bnf_bCjw.js` + `/assets/index-B2ol9MGH.css` (verified 2026-04-10) |
+| Live bundle | `/assets/index-lGjKNcFm.js` + `/assets/index-DfwOyOjc.css` (verified 2026-04-12) |
 
 There are two apps in the servicedesk container:
 
@@ -111,13 +111,19 @@ All API calls go through `/api/v2/*` (proxied to `pgepilot.cz:8400` by `server.c
 Backend forecast endpoint `/collection-points/:code/forecast` exists in `pgepilot-service`,
 but the current `pge-app` `main` branch does not expose a dedicated `/predikce` route.
 
+History/reporting contract used by the current frontend:
+
+- `GET /collection-points/:code` returns `source_options`, `history_usage_options`, `default_source`, `default_history_dataset`, and `default_history_usage`.
+- `GET /collection-points/:code/history` now accepts both `dataset` and `usage`; the frontend keeps explicit aggregation (`power_bf`, `power_1h`, `power_1d`) and passes `usage` so backend policy can resolve the correct reporting profile.
+- `GET /collection-points/:code/energy-summary` also accepts `usage`; the customer-facing app should use `customer_history_energy`.
+
 Auth: JWT token stored in localStorage, sent as `Authorization: Bearer <token>`.
 
 ---
 
 ## Build and Deploy
 
-Current production checkout inside `pgepilot_servicedesk` is clean on `main@05e61e0`.
+Current production checkout inside `pgepilot_servicedesk` is clean on `main@3d7e6bb`.
 
 ```bash
 # Development (Vite dev server with proxy)

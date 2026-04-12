@@ -14,9 +14,9 @@ Technical documentation for the PGEPilot ecosystem -- a photovoltaic (PV) monito
 | **PgePilot Cloud** | Cloud monitoring, 23 active plants, 7 Docker containers | Production |
 | **SmartBox / SBC** | Edge Raspberry Pi, Modbus inverter control, reverse SSH | Production (monitoring), WIP (control) |
 | **PGE App** | Vue 3 web frontend at app.pgepilot.cz | Production |
-| **Mobile App** | React Native cross-platform (planned) | Specification |
+| **Mobile App** | React Native cross-platform client sharing API v2 with web | Implemented MVP, active development |
 | **Infrastructure** | 3 servers (Hetzner), MariaDB, Docker, nginx | Production |
-| **API v2** | 36+ REST endpoints, JWT auth, forecast | Production |
+| **API v2** | 36+ REST endpoints, JWT auth, forecast, usage-based history resolver | Production |
 
 ## Documentation Structure
 
@@ -26,7 +26,7 @@ INDEX.md                     <-- AI entry point: file map
 01-pgepilot-cloud.md         <-- Cloud platform overview
 02-smartbox-sbc.md           <-- SmartBox edge system
 03-pge-app-frontend.md       <-- Vue3 web application
-04-mobile-app.md             <-- Planned mobile application
+04-mobile-app.md             <-- React Native mobile application (implemented MVP)
 05-infrastructure.md         <-- Servers, Docker, databases, networking
 06-api-reference.md          <-- All API endpoints
 07-entity-model.md           <-- Domain model and database schema
@@ -61,7 +61,7 @@ Where you see `[REDACTED]` in a document, look up the actual value in those priv
 
 | Repo | Purpose |
 |------|---------|
-| [Holbytlo/pgepilot-service](https://github.com/Holbytlo/pgepilot-service) | PHP backend + API v2 |
+| [Holbytlo/pgepilot-service](https://github.com/Holbytlo/pgepilot-service) | PHP backend + API v2 + dataset/source policy resolver |
 | [Holbytlo/pgepilot-js](https://github.com/Holbytlo/pgepilot-js) | Node.js job orchestrator |
 | [Holbytlo/pgepilot-srv](https://github.com/Holbytlo/pgepilot-srv) | Auth server (JWT) |
 | [Holbytlo/pge-app](https://github.com/Holbytlo/pge-app) | Vue3 frontend (PGE App) |

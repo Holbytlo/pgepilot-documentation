@@ -1,7 +1,7 @@
 # 06 -- API Reference
 
 > All API endpoints: PgePilot v2, legacy v1, Email, RPC, JobManager, and external connectors.
-> Last updated: 2026-04-09
+> Last updated: 2026-04-12
 
 ---
 
@@ -47,10 +47,10 @@ Implemented primarily in: `pgepilot-service/app/routes_pge_control.php`
 | Endpoint | Method | Description |
 |----------|--------|-------------|
 | `/collection-points` | GET | All collection points |
-| `/collection-points/{code}` | GET | CP detail (devices, machines, connectors) |
+| `/collection-points/{code}` | GET | CP detail (devices, machines, connectors, source options, history usage options) |
 | `/collection-points/{code}/live` | GET | Realtime power data from realtime_state |
-| `/collection-points/{code}/history` | GET | Historical data. Params: `dataset` (power_1m, energy_15m), `from`, `to` |
-| `/collection-points/{code}/energy-summary` | GET | Energy summary (kWh totals) |
+| `/collection-points/{code}/history` | GET | Historical/reporting data. Params: `dataset`, `usage`, `source`, `from`, `to` |
+| `/collection-points/{code}/energy-summary` | GET | Energy summary (kWh totals). Params: `usage`, `source`, `from`, `to` |
 | `/collection-points/{code}/devices` | GET | Device list |
 | `/collection-points/{code}/relay-groups` | GET | Relay groups (control points) |
 | `/collection-points/{code}/battery-mode` | GET | Current battery mode |
@@ -123,6 +123,53 @@ Still running on the same service container. Used by older clients.
 | `/getCustomerPlants` | GET | Plant IDs for customer |
 | `/getPlantInfo` | GET | Plant detail |
 | `/getPlantEnergyData` | GET | Energy history |
+
+---
+
+## History and Reporting Contract
+
+`/collection-points/{code}` now exposes both source and reporting defaults:
+
+- `source_options`
+- `history_usage_options`
+- `default_source`
+- `default_history_dataset`
+- `default_history_usage`
+
+History is resolved by a combination of:
+
+- `dataset` = requested aggregation or dataset family (`power_bf`, `power_1m`, `power_rt`, `power_1h`, `power_1d`, `energy_15m`)
+- `usage` = use-case profile that tells backend policy what the caller wants
+- `source` = effective or connector-specific source selection
+
+Important runtime note:
+
+- `power_1m` is the canonical history store in `pge_data`
+- `power_bf` is the default customer-facing reporting profile
+- when no dedicated `{code}_power_bf` table exists, backend resolves `power_bf` by aggregating canonical `power_1m`
+- SmartBox push (`smartboxSendData`) and GoodWe backfill now both feed the same canonical history/energy layer in `pge_data`
+
+Supported `usage` values in production:
+
+- `customer_history_power` -- default power history for app/web/mobile
+- `customer_history_energy` -- default energy reporting profile
+- `forecast_input_power` -- preferred input profile for forecast/analytics
+
+Client rule of thumb:
+
+- customer reporting screens pass explicit aggregation dataset plus `usage=customer_history_power`
+- energy summary calls use `usage=customer_history_energy`
+- forecast or analytics jobs use `usage=forecast_input_power`
+
+Important response metadata returned by `/history` and `/energy-summary`:
+
+- `source_requested`
+- `source_selected`
+- `usage_requested`
+- `usage_selected`
+- `dataset`
+- `source_options`
+- `usage_options`
 
 ---
 

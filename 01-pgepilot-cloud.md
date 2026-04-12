@@ -1,7 +1,7 @@
 # 01 -- PgePilot Cloud Platform
 
 > Cloud monitoring and control platform for photovoltaic installations.
-> Last updated: 2026-04-10
+> Last updated: 2026-04-12
 
 ---
 
@@ -58,12 +58,12 @@ Worker1 --> calls GoodWe/SolaX API --> stores in DB
 |----|------|--------|-------|
 | 15 | Plant Health Check | **Yes** | All plants, reads from cache |
 | 17 | Control Relays | **Yes** | Per-plant relay strategy |
-| 18 | Historical Data Backfill | **Yes** | Rewritten: GetStationHistoryDataChart (1min, 57 registers) -> power_1m + power_bf. One API call per 7 days. |
-| 19 | Energy Data Backfill (GoodWe kWh) | **Yes** | Re-enabled |
+| 18 | Historical Data Backfill | **Yes** | Rewritten: GetStationHistoryDataChart (1min, 57 registers) -> canonical `pge_data.{code}_power_1m` with lineage. `power_bf` stays a reporting profile resolved over that history. |
+| 19 | Energy Data Backfill (GoodWe kWh) | **Yes** | GoodWe reported kWh is aggregated into canonical `pge_data.{code}_energy_15m` with source lineage. |
 | 20 | Sync Realtime | No | Migrated from crontab, currently disabled |
 | 21 | Sync History | No | Migrated from crontab, currently disabled |
 | 22 | Record Realtime to History | No | Migrated from crontab, currently disabled |
-| 23 | Compute Energy 15m | **Yes** | `every:900seconds`; aggregates realtime power into `energy_15m` |
+| 23 | Compute Energy 15m | **Yes** | `every:900seconds`; prefers `power_1m`, falls back to `power_rt`, writes lineage into `energy_15m` |
 | 24 | PV Forecast (forecast.solar) | No | `every:3600seconds`; endpoint exists in service, DB definition currently disabled |
 | 25 | Load Forecast | No | `every:3600seconds`; endpoint exists in service, DB definition currently disabled |
 | 26 | PV Forecast OpenMeteo | **Yes** | `every:3600seconds`; current active recurring forecast source |
@@ -213,7 +213,7 @@ Task 18 was rewritten to use a higher-resolution GoodWe API endpoint:
 | Property | Old (before 2026-04-04) | New (after 2026-04-04) |
 |----------|------------------------|------------------------|
 | API method | GetPlantPowerChart (5min, 6 curves) | GetStationHistoryDataChart (1min, 57 registers) |
-| Output table | power_bf only | power_1m + aggregated to power_bf |
+| Output table | power_bf only | canonical `power_1m`; customer `power_bf` is resolved as a reporting profile over canonical history |
 | API call range | 1 call per day | 1 call per 7 days |
 | API endpoint | SEMS Web: POST /api/HistoryData/GetStationHistoryDataChart | Same |
 | Rate limit | -- | No rate limit observed on SEMS Web |
@@ -251,10 +251,10 @@ New plant `VA_SB` (ID 202) registered as a SmartBox pull connector:
 
 | Repo | Container | Branch | Contents |
 |------|-----------|--------|----------|
-| Holbytlo/pgepilot-service | `pgepilot_service` plus workers 1/2/3 are clean on `main@b578bd8` | main | PHP Slim4 API, TaskManager, DB migrations |
+| Holbytlo/pgepilot-service | `pgepilot_service` plus workers 1/2/3 are clean on `main@a04e0ba` | main | PHP Slim4 API, TaskManager, DB migrations |
 | Holbytlo/pgepilot-js | `pgepilot_jobmanager` in `/home/app`, clean `main@4346047`; recurring work is DB-backed via `task_definitions` | main | Node.js job orchestrator |
 | Holbytlo/pgepilot-srv | `pgepilot_auth_srv` runtime is `/app` deploy artifact; no git metadata visible in container | main | Auth server (JWT, login) |
-| Holbytlo/pge-app | `pgepilot_servicedesk:/home/app2/pge-app`, clean `main@05e61e0`; live bundle currently serves `/assets/index-Bnf_bCjw.js` | main | Vue3 frontend |
+| Holbytlo/pge-app | `pgepilot_servicedesk:/home/app2/pge-app`, clean `main@3d7e6bb`; live bundle currently serves `/assets/index-lGjKNcFm.js` | main | Vue3 frontend |
 | Holbytlo/servisdesk | `pgepilot_servicedesk:/home/app2/servicedesk`, clean `main@1c21bd4` | main | Admin UI |
 | Holbytlo/sb | SB1: `/opt/energity/sb`, clean `devva@be59807` | devva | Python SmartBox software |
 | Holbytlo/sb-manager | VPS: `/opt/sb-manager`, clean `main@5fd115b`, PM2 online with 156 historical restarts and current 10-day uptime | main | Node.js SB device management |
@@ -271,4 +271,4 @@ New plant `VA_SB` (ID 202) registered as a SmartBox pull connector:
 - Older docs say servicedesk `docker exec` fails; current reality is that `docker exec pgepilot_servicedesk sh -lc '...'` works
 - Tailwind CSS loaded from CDN in PGE App (should be npm installed)
 - `sb-manager` remains a stability concern: PM2 still reports 156 historical restarts, even though current uptime is 10 days
-- Latest commit on `pgepilot-service` `main`: `b578bd8` (`fix: disable Solax setExportLimit dispatch`)
+- Latest commit on `pgepilot-service` `main`: `a04e0ba` (`Route history pipeline through canonical pge_data datasets`)

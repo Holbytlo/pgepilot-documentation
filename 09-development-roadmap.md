@@ -11,9 +11,9 @@
 |-----------|--------|---------|
 | Legacy PgePilot | Production | 35 collection points (GoodWe, SolaX, SmartBox), health check, relay control |
 | pge_control DB | Production | 28 tables (+ sems_plant_discovery), 35 CP, 26 devices, 40 machines, 39 connectors, realtime sync |
-| pge_data DB | Production | 81 tables (power_1m, energy_15m, forecast) + OTE spot import table in service DB |
-| API v2 | Production | 36+ endpoints, JWT auth, forecast API, task API |
-| PGE App (web) | Production (synchronized) | Dashboard, CPDetail, Charts, Alerts, Domains, Users, Instalace, Nastaveni. Production source checkout is clean `main@05e61e0`; live bundle serves `/assets/index-Bnf_bCjw.js`. |
+| pge_data DB | Production | 81 tables across raw/source history, derived/reporting datasets, energy lineage, and forecast + OTE spot import table in service DB |
+| API v2 | Production | 36+ endpoints, JWT auth, forecast API, task API, usage-based history resolver |
+| PGE App (web) | Production (synchronized) | Dashboard, CPDetail, Charts, Alerts, Domains, Users, Instalace, Nastaveni. Production source checkout is clean `main@3d7e6bb`; live bundle serves `/assets/index-lGjKNcFm.js`. |
 | Forecast system | Production | PV (forecast.solar Pro), load (profiling), weather (Open-Meteo), adaptive correction |
 | JobManager scheduler | Production | Current recurring runtime is DB-backed through `task_definitions`; legacy `pgepilot-js` scheduler block stays commented on current `main`. Runtime is clean `main@4346047`. |
 | SmartBox SB1 | Production (monitoring) | 4 microservices, Modbus polling, RPC working, 2139 rpc_kv records. Plant VA_SB (ID 202) registered as pull connector. Live code: `devva@be59807`; `origin/devva` is one additive commit ahead at `5322f3f` (Deye driver merge), not yet deployed on SB1. |
@@ -22,7 +22,7 @@
 | sb-manager | Production (historically unstable) | 161 total restarts recorded by PM2; currently online with ~38h uptime (verified 2026-04-12) |
 | Email API | Production | 5 profiles (servis, automat, technika, obchod, info) |
 | Connector self-governance | Production | Budget trait, cache, enabled flags |
-| Worker runtime sync | **DONE** | worker1/2/3 were backed up and reset to clean `main@b578bd8` on 2026-04-10 |
+| Worker runtime sync | **DONE** | worker1/2/3 were backed up and reset on 2026-04-10; refreshed again to clean `main@a04e0ba` on 2026-04-12 |
 | VPS tunnel keepalive | **DONE** | `ClientAliveInterval 30` + `ClientAliveCountMax 3` in sshd_config (2026-04-12). Dead tunnels auto-cleaned within 90s. |
 | HW watchdog sb1+sb4 | **DONE** | `RuntimeWatchdogSec=30` enabled on both devices (2026-04-12). Auto-reboot on freeze. |
 | Deye driver merge | **DONE** | Surgical cherry-pick from `dev_deye` into `devva` (commit `5322f3f`, 2026-04-11). 5 new files + 2-line edit in device_manager.py. GoodWe untouched, Deye opt-in via devices_config.yaml. |
@@ -54,7 +54,7 @@
 | Docker-compose fix | 04-04 | servicedesk added to nginx-proxy-manager network |
 | api_usage retention | 04-04 | Cron deletes rows older than 30 days |
 | VA_SB plant registered | 04-04 | SmartBox pull connector, plant ID 202, tables va_sb_power_rt + va_sb_energy_15m |
-| Task 18 rewritten | 04-04 | GetStationHistoryDataChart (1min, 57 registers) replaces GetPlantPowerChart (5min, 6 curves). Output: power_1m + power_bf |
+| Task 18 rewritten | 04-04 | GetStationHistoryDataChart (1min, 57 registers) replaces GetPlantPowerChart (5min, 6 curves). Initial output: power_1m + power_bf |
 | GetChartByPlant | 04-04 | Replaces GetPlantPowerChart in getPlantPowerChartAll(). 12 curves (+ per-phase meter/load + SOC2) |
 | power_1m tables created | 04-04 | tpl_power_1m + 17 GoodWe plant tables (57 register columns + 5 computed) |
 | sems_plant_discovery | 04-04 | 228 SEMS plants cataloged in pge_control, in_pgepilot flag |
@@ -66,6 +66,9 @@
 | OTE tasks 30/31 | 04-07 | JobManager-verified imports for today (`00:05`) and today+tomorrow (`12:10`) |
 | Git audit refresh | 04-09 to 04-10 | `pgepilot-service` `main` at `b578bd8`, `pge-app` `main` at `05e61e0`; production workers, jobmanager cleanup, and live `pge-app` checkout were resynchronized. Auth runtime provenance remains unresolved. |
 | Runtime resync cleanup | 04-10 | worker1/2/3 reset to `main@b578bd8`, `pge-app` reset + rebuilt to `main@05e61e0`, jobmanager untracked backups removed during cleanup. Worker pre-sync backups live under `/root/runtime-sync-backups/2026-04-10` |
+| History usage resolver + energy lineage | 04-12 | API detail now exposes `history_usage_options`; `/history` + `/energy-summary` accept `usage`; energy aggregation prefers `power_1m`, falls back to `power_rt`, and stores source lineage metadata |
+| History pipeline cutover | 04-12 | GoodWe backfill writes canonical `pge_data.{code}_power_1m`, SmartBox `smartboxSendData` writes canonical `power_1m` + reported `energy_15m`, history policy points to `power_1m`, and `power_bf` is now primarily a reporting profile resolved over canonical history |
+| Production deploy of history cutover | 04-12 | `pgepilot_service` + workers 1/2/3 synced to `a04e0ba`, migration `009_history_lineage_and_policy_cutover.sql` applied, `pge-app` synced to `3d7e6bb`, rebuilt, and PM2-restarted |
 
 ---
 
@@ -75,11 +78,11 @@ Items left incomplete from the last development session. Start here before new w
 
 | # | Item | Status | Detail |
 |---|------|--------|--------|
-| H1 | ~~Synchronize worker1/2/3 with git~~ | **DONE** | Backups stored under `/root/runtime-sync-backups/2026-04-10`, then all three workers reset to clean `main@b578bd8`. |
-| H2 | ~~Synchronize live PGE App checkout with git~~ | **DONE** | `pgepilot_servicedesk:/home/app2/pge-app` is now clean `main@05e61e0` and rebuilt in place. |
+| H1 | ~~Synchronize worker1/2/3 with git~~ | **DONE** | Backups stored under `/root/runtime-sync-backups/2026-04-10`, then workers were refreshed again to clean `main@a04e0ba` on 2026-04-12. |
+| H2 | ~~Synchronize live PGE App checkout with git~~ | **DONE** | `pgepilot_servicedesk:/home/app2/pge-app` is now clean `main@3d7e6bb` and rebuilt in place. |
 | H3 | **Prove auth runtime provenance** | UNKNOWN | `pgepilot_auth_srv` runs from `/app` with no visible git checkout. Need to link it to a repo/image source of truth. |
 | H4 | ~~Create tpl_power_bf table~~ | **DONE** | tpl_power_1m created (57 register + 5 computed columns). 17 GoodWe plant tables created. Task 18 rewritten to use power_1m. |
-| H5 | **Activate task_definitions 20-22** | READY | Sync tasks migrated from crontab but currently disabled. Need to verify they work, then enable. |
+| H5 | **Activate task_definitions 20-22** | READY | Sync tasks migrated from crontab but currently disabled. Before enabling, align them with the raw/source -> derived/reporting model so they do not reintroduce split-brain history. |
 | H6 | **SB1 poll warning** | LOW | Communication controller logs poll as "failed" (ok=None). Either server adds `ok: true` to smartboxPoll response, or fix comm controller parsing. |
 | H7 | **SB1 NTP warning** | LOW | "NTP not initialized, using system time" -- not critical but should be resolved. |
 | H8 | ~~Git push SB1 changes~~ | **DONE** | `Holbytlo/sb` `devva` currently points to commit `5322f3f` (`feat: add Deye inverter driver`) |
@@ -97,8 +100,8 @@ Items left incomplete from the last development session. Start here before new w
 
 | # | Task | Detail | Effort |
 |---|------|--------|--------|
-| 1.1 | ~~Installation page~~ | **DONE** on current `pge-app` `main` (`05e61e0`) | ~~Medium~~ |
-| 1.2 | ~~Settings page~~ | **DONE** on current `pge-app` `main` (`05e61e0`) | ~~Medium~~ |
+| 1.1 | ~~Installation page~~ | **DONE** on current `pge-app` `main` (`3d7e6bb`) | ~~Medium~~ |
+| 1.2 | ~~Settings page~~ | **DONE** on current `pge-app` `main` (`3d7e6bb`) | ~~Medium~~ |
 | 1.3 | Password change | Missing endpoint + UI | Small |
 | 1.4 | ~~Sync crons to JobManager~~ | **DONE** -- migrated to task_definitions 20-22 (currently disabled, need activation) | ~~Medium~~ |
 | 1.5 | PV forecast for all CPs | Add pv_forecast_config for more plants (currently only VA + Kder Veltrusy) | Medium |
