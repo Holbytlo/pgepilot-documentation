@@ -62,7 +62,7 @@ ssh root@pgepilot.cz "docker exec -it pgepilot_servicedesk sh"
 
 | Runtime path | Git state | Notes |
 |--------------|-----------|-------|
-| `pgepilot_service:/var/www/html` | clean `main@a04e0ba` | Canonical history/runtime cutover deployed 2026-04-12; migration 009 applied |
+| `pgepilot_service:/var/www/html` | clean `main@da784a6` | SmartBox local-auth middleware hotfix deployed 2026-04-12; `pgepilot-service` now serves legacy-compatible SmartBox auth endpoints directly |
 | `pgepilot_worker1:/var/www/html` | clean `main@a04e0ba` | Resynchronized from GitHub `main` on 2026-04-12 |
 | `pgepilot_worker2:/var/www/html` | clean `main@a04e0ba` | Resynchronized from GitHub `main` on 2026-04-12 |
 | `pgepilot_worker3:/var/www/html` | clean `main@a04e0ba` | Resynchronized from GitHub `main` on 2026-04-12 |
@@ -283,7 +283,12 @@ ssh -J limited@ra-energity.cz -p <SSH_PORT> root@127.0.0.1 \
   "systemctl list-units 'energity-*' --no-pager --no-legend | awk '{print \$1, \$3, \$4}'"
 ```
 
-SSH ports: sb1=20002, sb4=20032, sb7=20037.
+SSH ports: sb1=20002, sb4=20032, sb7=20062.
+
+SmartBox auth rollout status (verified 2026-04-12):
+- migrated to `service.pgepilot.cz`: SB1, SB4, SB7
+- still on legacy `auth.pgepilot.cz`: remaining boxes
+- legacy `pgepilot_auth_srv` remains active intentionally during gradual migration
 
 **Important excludes rationale:**
 - `devices_config.yaml` -- per-machine device config (GoodWe IP, Deye IP, enabled state)

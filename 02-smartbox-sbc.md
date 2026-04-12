@@ -155,6 +155,11 @@ SB1 (192.168.0.51)                 VPS (195.201.19.103)
 
 **Port schema for multiple SBs**: `base = 20000 + (N-1) * 10`, offsets: +0=nginx, +2=ssh, +3=config, +4=api, +5=ops, +9=health
 
+Verified active SSH ports on VPS in this session:
+- SB1: `20002`
+- SB4: `20032`
+- SB7: `20062`
+
 > **Note (2026-04-04)**: Ports 20050-20055 are active on VPS -- this is a test SmartBox at a customer site. Not yet production, will be resolved gradually. Ask about current status before working on it.
 
 ### Services on SB1 (all systemd, root)
@@ -224,6 +229,12 @@ VPS :20035  <->  sb4 :3002   sb-ops-agent
 ### Services on sb4 (all systemd, root)
 
 Same as SB1 layout (7 energity-* services + sb-ops-agent + ra-tunnel + nginx), all `active running` (verified 2026-04-12). sb-ops-agent reports allUp=true, 6/6 services.
+
+### SmartBox auth rollout status (verified 2026-04-12)
+
+- SB1, SB4, and SB7 now authenticate against `https://service.pgepilot.cz`
+- legacy `https://auth.pgepilot.cz` remains active for the remaining boxes
+- current home/dev rollout still uses one shared SmartBox cloud identity for SB1/SB4/SB7; this is functional but must be split before independent production deployments
 
 ### GoodWe Modbus TCP collision warning
 

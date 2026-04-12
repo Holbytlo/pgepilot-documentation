@@ -199,7 +199,7 @@ ssh -J limited@ra-energity.cz -p <SSH_PORT> root@127.0.0.1 "
 | sb4 | 4 | 20030 | 20032 |
 | sb5 | 5 | 20040 | 20042 |
 | sb6 | 6 | 20050 | 20052 |
-| sb7 | ? | ? | ? (zjistit v sb-manageru) |
+| sb7 | 7 | 20060 | 20062 |
 
 ---
 
@@ -281,6 +281,10 @@ Canary rollout rule (verified 2026-04-12):
 - default for existing boxes remains `https://auth.pgepilot.cz`
 - only explicitly migrated boxes should switch `pgepilot.auth_url` to `https://service.pgepilot.cz`
 - migrated boxes currently are SB1, SB4, and SB7
+
+Current caveat:
+- SB1, SB4, and SB7 currently share one cloud auth identity during home/dev testing
+- before separate customer deployments, each box needs its own connector/auth identity in `pge_control.cp_connector_auth`
 
 ### 6c) Identita SmartBoxu (smartbox_config.yaml)
 
