@@ -7,18 +7,21 @@
 
 ## Strucny Stav
 
-- `pgepilot_service`: `main@da784a6`
-- `pgepilot_worker1/2/3`: `main@a04e0ba`
+- `pgepilot_service`: `main@a921042`
+- `pgepilot_worker1/2/3`: `main@a921042`
 - `pgepilot_servicedesk:/home/app2/pge-app`: `main@3d7e6bb`
-- `task 22` a `task 23` jsou aktivni
+- `sb-manager`: `main@ef3261b`
+- `task 18`, `task 19`, `task 22` a `task 23` jsou aktivni
 - `task 20` a `task 21` zustavaji vypnute
-- `task 18` stale obcas pada na HTTP `500`
+- `task 18` je po oprave stabilni; v poslednich 6h melo `1205 completed / 0 failed`
+- `task 19` je zatim taky zdravy; v poslednich 6h melo `1215 completed / 9 sent / 0 failed`
 
 Dulezite:
 
 - history cutover a auth/SmartBox helper zmena nebyly jedna vec
-- service je ted o jeden commit pred workeri
-- nepredpokladejte, ze service a workeri bezi na stejnem SHA
+- service a workeri jsou ted zase na stejnem SHA
+- SB1, SB4 a SB7 uz nesdili jednu cloud identitu
+- otevreny problem uz neni shared identity, ale chybejici UUID validace pro `machine_id`
 
 ---
 
@@ -29,28 +32,19 @@ Dulezite:
 - SmartBox `smartboxSendData` se mapuje do `power_1m` / `energy_15m`
 - `task 22` zapisuje `realtime_state` do `power_1m`
 - web uz pouziva novy `usage` kontrakt
+- SB1, SB4 a SB7 maji oddelene `login + smartbox_id + collection_point_id + device_id`
+- auditem overene klicove runtime soubory na SB1/SB4/SB7 odpovidaji lokalnimu `sb/devva@45a2fc0`
 
 ---
 
 ## Co Zbyva
 
-- dohledat, proc `task 18` stale obcas pada na `500`
-- hlidat, ze service a workeri nejsou rozjeti vic nez dnes
-- auth brat jako zvlastni thread, ne jako soucast history cutoveru
-
-Jeden zachyceny fail:
-
-```json
-{
-  "controllerFunction": "backfillHistoricalData",
-  "params": {
-    "plantId": "df559764-d5f3-4101-a3cb-cc1b7d1831f3",
-    "dateFrom": "",
-    "dateTo": "",
-    "maxDays": 7
-  }
-}
-```
+- dal monitorovat `task 18` a `task 19`, ale aktualne nejsou zachycene nove faulty
+- opravit a zvalidovat neplatne `machine_id`:
+  - `sb1 relay`: `b1bb905b-d285-50e3-98df-g5e62g1gc645`
+  - `sb7 inverter`: `c2cc916c-e396-51f4-a9f0-h6f73h2hd756`
+- doplnit tvrdou UUID validaci do `sb-manager`
+- `sb7` jeste nema finalni customer config: porad `enabled:false`, placeholder IP a placeholder `logger_serial`
 
 ---
 
@@ -114,6 +108,8 @@ ssh root@pgepilot.cz \
 Logy:
 
 ```bash
-ssh root@pgepilot.cz 'tail -n 80 /var/log/pgepilot/worker/taskcontroller.log'
-ssh root@pgepilot.cz 'tail -n 80 /var/log/pgepilot/worker/taskcontroller.err'
+ssh root@pgepilot.cz 'docker logs --tail 80 pgepilot_worker1 2>&1'
+ssh root@pgepilot.cz 'docker logs --tail 80 pgepilot_worker2 2>&1'
+ssh root@pgepilot.cz 'docker logs --tail 80 pgepilot_worker3 2>&1'
+ssh root@pgepilot.cz 'docker logs --tail 80 pgepilot_service 2>&1'
 ```

@@ -15,6 +15,7 @@ Current verified state:
 - `pgepilot_worker1/2/3` runtime: `main@a921042`
 - `pgepilot_servicedesk:/home/app2/pge-app`: `main@3d7e6bb`
 - `sb-manager` runtime on VPS: `main@ef3261b`
+- local SmartBox source repo reference: `sb/devva@45a2fc0`
 - public `app.pgepilot.cz` bundle: `index-lGjKNcFm.js` + `index-DfwOyOjc.css`
 - `task_definitions`: `18=active`, `19=active`, `20=disabled`, `21=disabled`, `22=active`, `23=active`
 
@@ -23,6 +24,7 @@ Important:
 - the history cutover and the SmartBox/auth follow-up were not the same deploy
 - service + workers are uniform again on `a921042`
 - SB1, SB4, and SB7 now use separate SmartBox identity bundles; the old shared auth row is legacy residue only
+- audited key runtime file hashes on SB1, SB4, and SB7 currently match the local `sb/devva@45a2fc0` content
 - auth remains a separate topic; do not mix SmartBox auth changes into history debugging unless auth is the direct root cause
 
 ---
@@ -38,6 +40,8 @@ Important:
 - web app already uses the new history `usage` contract
 - GoodWe historical backfill now ingests one day at a time instead of one 7-day API payload per plant
 - reverse backfill now stores a `plant_config.goodwe_reverse_empty_before_date` marker when the chunk immediately before current `min_date` is empty, so plants do not retry the same empty reverse window forever
+- `task 18` has stayed clean in the later verification window: last 6h snapshot on `2026-04-12 22:20 CEST` showed `1205 completed`, `0 failed`
+- `task 19` is also healthy in the same window: `1215 completed`, `9 sent`, `0 failed`
 - SB1, SB4, and SB7 now have distinct `login + smartbox_id + collection_point_id + device_id` mappings generated through `sb-manager -> pgepilot-service`
 - current SmartBox runtime expects canonical identity fields; legacy `plantId` is no longer the source of truth for provisioning
 
@@ -45,7 +49,7 @@ Important:
 
 ## What Is Still Open
 
-### 1. Continue Monitoring Task 18
+### 1. Continue Monitoring Task 18 / Task 19
 
 The previous hard failure mode was confirmed and fixed:
 
@@ -63,11 +67,32 @@ Post-deploy verification:
 - manual canary for `BD41` (`e7f56834-1e0d-4a1a-b5dd-1438ff332e7d`) completed cleanly with `status=OK`, `processed_days=7`, `days_with_data=7`, `total_datapoints_saved=10045`
 - manual canary for `FVE_DF55` (`df559764-d5f3-4101-a3cb-cc1b7d1831f3`) first returned clean empty reverse window, then second run returned `reverse_exhausted`
 - `task_definition_id = 18` had `0` failed rows after `2026-04-12 17:40:00`
+- later live snapshot at `2026-04-12 22:20 CEST`: `task 18 = 1205 completed / 0 failed` in the last 6h
+- later live snapshot at `2026-04-12 22:20 CEST`: `task 19 = 1215 completed / 9 sent / 0 failed` in the last 6h
 - no new Apache fatal/OOM entries were observed after deploy
 
 This should now be treated as stabilized but still worth watching for a few scheduler cycles.
 
-### 2. Auth context
+### 2. SmartBox Identity Validation Gap
+
+Identity split is deployed and active, but validation is still not strict enough:
+
+- `cp_connector_auth` is now split per box for `sbx_sb1_f9bcdf`, `sbx_sb4_ba8906`, and `sbx_sb7_70862d`
+- live `cp_collection_points`, `cp_devices`, and `cp_machines` rows exist for all three boxes
+- however, `sb-manager/src/routes/admin.js` still accepts `machine_id` as a generic string instead of a UUID
+- two currently provisioned machine IDs are not valid hex UUIDs and have already propagated into box configs and `pge_control`:
+  - `sb1 relay`: `b1bb905b-d285-50e3-98df-g5e62g1gc645`
+  - `sb7 inverter`: `c2cc916c-e396-51f4-a9f0-h6f73h2hd756`
+
+Before the next provisioning wave, tighten validation in `sb-manager` and replace those bad IDs consistently in:
+
+- `cp_machines`
+- `cp_connector_auth.machine_ids_json`
+- `rpc_client_config.yaml`
+- `smartbox_config.yaml`
+- `devices_config.yaml`
+
+### 3. Auth context
 
 Auth was handled in a different chat.
 
@@ -172,8 +197,10 @@ ssh root@pgepilot.cz \
 Worker logs:
 
 ```bash
-ssh root@pgepilot.cz 'tail -n 80 /var/log/pgepilot/worker/taskcontroller.log'
-ssh root@pgepilot.cz 'tail -n 80 /var/log/pgepilot/worker/taskcontroller.err'
+ssh root@pgepilot.cz 'docker logs --tail 80 pgepilot_worker1 2>&1'
+ssh root@pgepilot.cz 'docker logs --tail 80 pgepilot_worker2 2>&1'
+ssh root@pgepilot.cz 'docker logs --tail 80 pgepilot_worker3 2>&1'
+ssh root@pgepilot.cz 'docker logs --tail 80 pgepilot_service 2>&1'
 ```
 
 ---

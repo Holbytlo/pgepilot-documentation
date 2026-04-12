@@ -87,6 +87,7 @@
 **Pricina:** Zmena v sablone nebyla deployovana na VPS
 **Workaround:** Rucni `sed -i` na kazdem novem zarizeni
 **Oprava:** Deploy aktualni `sb-manager` na VPS (commit `b48b296`)
+**Status (2026-04-12 pozde vecer):** VYRESENO. Live `sb-manager` je ted `main@ef3261b` a aktualni `sb_bootstrap.sh` sablona obsahuje `enable_hardware_watchdog()` + `RuntimeWatchdogSec=30`.
 
 ---
 
@@ -157,6 +158,21 @@
 
 ---
 
+### P16: Chybi striktni UUID validace pro `machine_id`
+
+**Kde:** `sb-manager/src/routes/admin.js`, sync/provisioning payloady pro cloud identity
+**Co se stalo:** `machine_id` se validuje jen jako obecny string. Do live konfigurace a `pge_control` se tak propsaly i nevalidni hodnoty:
+
+- `sb1 relay`: `b1bb905b-d285-50e3-98df-g5e62g1gc645`
+- `sb7 inverter`: `c2cc916c-e396-51f4-a9f0-h6f73h2hd756`
+
+**Dopad:** Chyba se neomezila jen na box configy; je uz i v `cp_connector_auth.machine_ids_json` a `cp_machines.id`.
+**Workaround:** Rucne vygenerovat validni UUID a konzistentne je prepsat v cloudu i na boxu.
+**Oprava:** Zprisnit validaci v `sb-manager` na UUID format pro `machine_id`, `masterMachineId`, `deviceId`, `collectionPointId`, `smartboxId` tam, kde to ma byt UUID, a pri sync/provisioningu failnout driv, nez se to zapise.
+**Status (2026-04-12 pozde vecer):** OTEVRENO, HIGH priority pred dalsim provisioningem.
+
+---
+
 ## Navrhovany target stav (automaticky provisioning)
 
 ```
@@ -190,10 +206,11 @@ Cil: vsechno v jednom skriptu bez rucnich oprav po prvnim bootu.
 | P2 | Small | VYSOKE | Pridat volitelny `n` parametr do POST devices -- HOTOVO v live API/UI |
 | P5 | Medium | VYSOKE | Parametrizovat cesty v service unitech -- HOTOVO v repu `sb/devva`, pending deploy |
 | P6 | Small | VYSOKE | Kompletni requirements.txt |
-| P8 | Small | VYSOKE | Deploy aktualni sb-manager na VPS |
+| P8 | ~~Small~~ | ~~VYSOKE~~ | ~~Deploy aktualni sb-manager na VPS~~ -- HOTOVO, live je `ef3261b` |
 | P9 | Small | VYSOKE | PubkeyAuthentication fix v bootstrap |
 | P3 | Small | STREDNI | DELETE endpoint pro devices |
 | P4 | Small | STREDNI | Alias v PATCH schema |
 | P11 | Small | STREDNI | ServerAliveInterval default 15 |
 | P12 | Small | STREDNI | StartLimitIntervalSec=0 default |
 | P13 | Small | STREDNI | StartLimit do [Unit] sekce |
+| P16 | Small | VYSOKE | UUID validace pro `machine_id` a oprava uz zapsanych spatnych ID |

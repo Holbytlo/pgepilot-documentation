@@ -42,6 +42,7 @@ SmartBox (SB) is an edge computing device (Raspberry Pi) installed at a customer
 ### Runtime Snapshot (verified 2026-04-12)
 
 - `sb-manager`: clean `main@ef3261b`, PM2 online, live cloud identity sync for SmartBox provisioning is working
+- PM2 restart counter is `168` as of `2026-04-12 22:20 CEST`; current uptime is short because of same-day deploy/restart
 - `sb-router`: clean `main@4c4a7ad`, systemd active
 - `pgepilot-smartbox-sim`: PM2 online on port 5001
 
@@ -126,7 +127,7 @@ Backup: `/etc/systemd/system.conf.bak-20260412` on each device.
 | Python | 3.13.5 (venv) |
 | Node.js | v20.19.2 |
 | Inverter | GoodWe ET+ at 192.168.0.70:502 (Modbus TCP) |
-| Git runtime | `/opt/energity/sb`, live `devva@be59807` (verified 2026-04-12). `origin/devva` is one additive commit ahead: `5322f3f` (Deye driver merge), not yet deployed on SB1. |
+| Runtime content | `/opt/energity/sb`, rsync-deployed runtime. Audited key file hashes currently match local `sb/devva@45a2fc0` (`smartbox_service.py`, `rpc_client/models.py`, `install_systemd_services.sh`, `base_device.py`). |
 | Watchdog | BCM2835, RuntimeWatchdogSec=30 (enabled 2026-04-12) |
 
 ### Access
@@ -207,7 +208,7 @@ journalctl -u energity-device-controller -f
 | Python | 3.11.2 (venv) |
 | Location | Dev box (doma, stejna LAN jako sb1) |
 | Inverter | GoodWe at 192.168.0.70:502 (sdileny se sb1, enabled: false -- viz poznamka) |
-| Code | `/opt/energity/sb`, rsync from Mac `devva@5322f3f` (deployed 2026-04-11) |
+| Runtime content | `/opt/energity/sb`, rsync-deployed runtime. Audited key file hashes currently match local `sb/devva@45a2fc0`. |
 | Watchdog | STM32 IWDG, RuntimeWatchdogSec=30 (enabled 2026-04-12) |
 
 ### Access
@@ -483,7 +484,7 @@ defaults -> TOU schedule -> dateTime overrides -> direct runtime command
 |   +-- templates/              # login, user_section, service_section
 |
 +-- rpc_client/                 # Cloud communication
-|   +-- main.py                 # FastAPI/RPC :3012
+|   +-- main.py                 # FastAPI/RPC :3001
 |
 +-- communication_controller/   # Data flow orchestration
 |   +-- smartbox_config_loader.py
@@ -497,10 +498,11 @@ defaults -> TOU schedule -> dateTime overrides -> direct runtime command
 ## Known Issues
 
 - `sb-test-3000` and `sb-test-3001` are in a failing loop on SB1 (legacy test services -- should be stopped/disabled)
-- `sb-manager` on VPS has 156 historical restarts; it is currently online with a 10-day uptime, but the root cause is still unresolved
+- `sb-manager` on VPS has 168 historical restarts as of `2026-04-12 22:20 CEST`; restart counter remains a stability concern
 - `energity-health` (:3007) and `energity-rpc-client` (:3001) bind to 0.0.0.0 (security risk)
 - Passwords hardcoded in `app.py` (web interface)
 - Modbus RTU driver lacks thread safety (only TCP is thread-safe)
 - `modbus_reg_goodwe.yaml` has `scale: N/A` string on ~15 registers (47000, 47505, 47509, 47511, 47602, 47902-47905, 35185, 35187, 35189) -- causes `Invalid scale factor` warnings on every poll cycle. Driver handles gracefully but those register values are not stored. Affects both sb1 and sb4. Fix: replace `N/A` with numeric scale or remove those registers.
 - `smartbox_service.py` logs `Error in smartboxPoll: 'NoneType' object has no attribute 'get'` every 30s on sb4 -- pre-existing bug in comm-controller when device-controller returns no data (0 enabled devices). Cosmetic on dev box, but would be real issue if it appears on production sb1.
 - GoodWe `Serial=None, Model=None` at device init -- related to scale factor N/A bug above (serial/model registers have bad scale config)
+- SmartBox provisioning still lacks strict UUID validation for `machine_id`. Live examples of bad propagated IDs: sb1 relay `b1bb905b-d285-50e3-98df-g5e62g1gc645` and sb7 inverter `c2cc916c-e396-51f4-a9f0-h6f73h2hd756`.

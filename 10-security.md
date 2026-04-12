@@ -55,7 +55,7 @@ Some findings below are baseline audit items from 2026-04-03 and now include mit
 | HIGH-08 | SB services on 0.0.0.0 | SB1 :3007, :3001 | health + rpc-client accessible from any interface |
 | HIGH-09 | SB web UI passwords hardcoded | SB1 app.py | admin1234, tech1234, user1234 in source |
 | HIGH-10 | Worker redeploy depends on host-side SSH key injection or manual `docker cp` | pgepilot.cz | Runtime can be kept in sync, but the container image does not carry persistent GitHub credentials, so redeploy is still operationally fragile |
-| HIGH-11 | sb-manager instability history | VPS | 156 historical restarts recorded in PM2. Current uptime is 10 days, but root cause remains undocumented |
+| HIGH-11 | sb-manager instability history | VPS | Historical PM2 restart counter is 168 as of 2026-04-12 evening. Root cause remains undocumented |
 | HIGH-12 | Worker runtime fork not in git (mitigated 2026-04-10) | worker1/2/3 | Workers were backed up and reset to clean `main@b578bd8`; keep audit guardrails in place so drift does not return |
 
 ---
@@ -114,7 +114,7 @@ Some findings below are baseline audit items from 2026-04-03 and now include mit
 
 13. Docker volume mounts → persist container data
 14. Auth middleware → enable on all write endpoints
-15. Diagnose sb-manager → root cause of 156 historical restarts
+15. Diagnose sb-manager → root cause of historical restarts (168 as of 2026-04-12 evening)
 16. npm install Tailwind → remove CDN dependency
 17. Disable SSH PasswordAuthentication
 18. Create dedicated DB users (least privilege)

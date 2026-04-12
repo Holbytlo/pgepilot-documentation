@@ -62,10 +62,10 @@ ssh root@pgepilot.cz "docker exec -it pgepilot_servicedesk sh"
 
 | Runtime path | Git state | Notes |
 |--------------|-----------|-------|
-| `pgepilot_service:/var/www/html` | clean `main@da784a6` | SmartBox local-auth middleware hotfix deployed 2026-04-12; service is now one commit ahead of workers 1/2/3 (`a04e0ba`) |
-| `pgepilot_worker1:/var/www/html` | clean `main@a04e0ba` | Resynchronized from GitHub `main` on 2026-04-12 |
-| `pgepilot_worker2:/var/www/html` | clean `main@a04e0ba` | Resynchronized from GitHub `main` on 2026-04-12 |
-| `pgepilot_worker3:/var/www/html` | clean `main@a04e0ba` | Resynchronized from GitHub `main` on 2026-04-12 |
+| `pgepilot_service:/var/www/html` | clean `main@a921042` | Service and workers are uniform again after the history/auth follow-up work |
+| `pgepilot_worker1:/var/www/html` | clean `main@a921042` | Uniform with `pgepilot_service` as of 2026-04-12 evening |
+| `pgepilot_worker2:/var/www/html` | clean `main@a921042` | Uniform with `pgepilot_service` as of 2026-04-12 evening |
+| `pgepilot_worker3:/var/www/html` | clean `main@a921042` | Uniform with `pgepilot_service` as of 2026-04-12 evening |
 | `pgepilot_jobmanager:/home/app` | clean `main@4346047` | Runtime cleanup removed untracked `jobmanager.js.bak` / `jobmanager.js.pre_cleanup`; tracked `jobmanager.jszaloha` remains in repo |
 | `pgepilot_servicedesk:/home/app2/pge-app` | clean `main@3d7e6bb` | Live frontend source tree now matches GitHub `main`; served bundle currently `/assets/index-lGjKNcFm.js` |
 | `pgepilot_servicedesk:/home/app2/servicedesk` | clean `main@1c21bd4` | Admin UI checkout is clean |
@@ -203,7 +203,7 @@ git checkout -B main origin/main && git reset --hard origin/main && rm -f /tmp/g
 
 ### Worker Containers (git sync from host)
 
-Workers are currently clean on `main@a04e0ba`. The practical limitation is credentialing: containers do not keep the GitHub SSH key permanently, so host-side sync temporarily injects the key, fetches, resets, then deletes the key again.
+Workers are currently clean on `main@a921042`. The practical limitation is credentialing: containers do not keep the GitHub SSH key permanently, so host-side sync temporarily injects the key, fetches, resets, then deletes the key again.
 
 ```bash
 # Clean sync worker1/2/3 from GitHub main
@@ -294,7 +294,7 @@ SmartBox auth rollout status (verified 2026-04-12):
 **Important excludes rationale:**
 - `devices_config.yaml` -- per-machine device config (GoodWe IP, Deye IP, enabled state)
 - `rpc_client_config.yaml` -- per-machine cloud credentials (sbx_xxx)
-- `smartbox_config.yaml` -- per-machine identity (machine_id, plant)
+- `smartbox_config.yaml` -- per-machine SmartBox identity (`smartbox_id`, `collection_point_id`, `device_id`, `machine_id`)
 - `local_database/*.db*` -- historical sensor/log data
 - `.venv/` -- stays on device, no new deps needed unless requirements.txt changes
 

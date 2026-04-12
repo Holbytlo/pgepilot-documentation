@@ -252,13 +252,13 @@ New plant `VA_SB` (ID 202) registered as a SmartBox pull connector:
 
 | Repo | Container | Branch | Contents |
 |------|-----------|--------|----------|
-| Holbytlo/pgepilot-service | `pgepilot_service` is on `main@da784a6`, while workers 1/2/3 remain on `main@a04e0ba` | main | PHP Slim4 API, TaskManager, DB migrations |
+| Holbytlo/pgepilot-service | `pgepilot_service` and workers 1/2/3 are now uniformly on `main@a921042` | main | PHP Slim4 API, TaskManager, DB migrations |
 | Holbytlo/pgepilot-js | `pgepilot_jobmanager` in `/home/app`, clean `main@4346047`; recurring work is DB-backed via `task_definitions` | main | Node.js job orchestrator |
 | Holbytlo/pgepilot-srv | `pgepilot_auth_srv` runtime is `/app` deploy artifact; no git metadata visible in container | main | Auth server (JWT, login) |
 | Holbytlo/pge-app | `pgepilot_servicedesk:/home/app2/pge-app`, clean `main@3d7e6bb`; live bundle currently serves `/assets/index-lGjKNcFm.js` | main | Vue3 frontend |
 | Holbytlo/servisdesk | `pgepilot_servicedesk:/home/app2/servicedesk`, clean `main@1c21bd4` | main | Admin UI |
-| Holbytlo/sb | SB1: `/opt/energity/sb`, clean `devva@be59807` | devva | Python SmartBox software |
-| Holbytlo/sb-manager | VPS: `/opt/sb-manager`, clean `main@5fd115b`, PM2 online with 156 historical restarts and current 10-day uptime | main | Node.js SB device management |
+| Holbytlo/sb | SB1/SB4/SB7 are now treated as rsync-deployed runtimes; audited key file hashes match local `devva@45a2fc0` | devva | Python SmartBox software |
+| Holbytlo/sb-manager | VPS: `/opt/sb-manager`, clean `main@ef3261b`, PM2 online; historical restart counter is 168 as of 2026-04-12 evening | main | Node.js SB device management |
 | Holbytlo/sb-router | VPS: `/opt/sb-router`, clean `main@4c4a7ad`, systemd active since 2026-03-12 | main | Host-based router for SB tunnel subdomains |
 
 ---
@@ -271,6 +271,8 @@ New plant `VA_SB` (ID 202) registered as a SmartBox pull connector:
 - Workers were resynchronized with GitHub `main` on 2026-04-10, but future git-based redeploys still require temporary host-side SSH key injection because the containers do not keep GitHub credentials permanently
 - Older docs say servicedesk `docker exec` fails; current reality is that `docker exec pgepilot_servicedesk sh -lc '...'` works
 - Tailwind CSS loaded from CDN in PGE App (should be npm installed)
-- `sb-manager` remains a stability concern: PM2 still reports 156 historical restarts, even though current uptime is 10 days
-- Latest local `pgepilot-service` `main` commit: `da784a6` (`fix: bind smartbox local auth middleware helper`)
-- Production note: workers are still on `a04e0ba` (`Route history pipeline through canonical pge_data datasets`)
+- `sb-manager` remains a stability concern: PM2 historical restart counter is now 168
+- `task 18` is currently stabilized in production; last 6h snapshot on 2026-04-12 evening showed `1205 completed / 0 failed`
+- `task 19` is also currently healthy; last 6h snapshot on the same evening showed `1215 completed / 9 sent / 0 failed`
+- SB1, SB4, and SB7 no longer share one cloud identity; each box now has its own `login + smartbox_id + collection_point_id + device_id`
+- SmartBox provisioning still lacks strict UUID validation for `machine_id`, and two bad IDs are already present in live config/data (`sb1 relay`, `sb7 inverter`)
