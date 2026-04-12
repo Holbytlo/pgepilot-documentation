@@ -15,6 +15,7 @@
 **Pricina:** sb-manager pri volani sudo skriptu nepredava SB_ID jako env promennou
 **Workaround:** Rucni registrace klice v authorized_keys na VPS
 **Oprava:** V `sb-manager/src/routes/provision.js` overit, ze `SB_ID` se predava do env pri `child_process.exec` volani `vps_register_tunnel_key.sh`
+**Status (2026-04-12 vecer):** OPRAVENO v live `sb-manager` (`/opt/sb-manager/src/routes/provision.js` uz predava `SB_ID` do env)
 
 ---
 
@@ -25,6 +26,7 @@
 **Pricina:** API automaticky vyplnuje nejnizsi volne `n`, neprijima ho jako parametr
 **Workaround:** Rucni `UPDATE sb_devices SET n=13` primo v SQLite DB na VPS
 **Oprava:** Pridat volitelny parametr `n` do POST `/api/v1/sb/devices` schema. Pokud neni zadan, pouzit auto-increment. Pokud je zadan, overit ze neni obsazeny.
+**Status (2026-04-12 vecer):** OPRAVENO v live `sb-manager` API i UI (`createDeviceSchema` ma `n` a UI ma pole `n (volitelne)`)
 
 ---
 
@@ -55,6 +57,7 @@
 **Pricina:** Skript a service soubory byly napsany pro SB1 (RPi, user energity1), ne pro obecny deploy
 **Workaround:** Rucni vytvoreni 7 service unit souboru na kazdem novem zarizeni
 **Oprava:** Bud parametrizovat cesty v install skriptu (detekce existujiciho adresare), nebo presunout service soubory do sablony ktera pouziva promenne (`$SB_ROOT`, `$VENV_PATH`)
+**Status (2026-04-12 vecer):** OPRAVENO V REPU `sb/devva` — `sb/systemd/install_systemd_services.sh` ted renderuje templated unity s autodetekci `SB_ROOT`, user/group a venv. Pending deploy na dalsi boxy.
 
 ---
 
@@ -173,7 +176,9 @@
 8. Hotovo — zarizeni online v sb-manageru
 ```
 
-Dnes je krok 5 rozbitý (P1) a kroky 6-7 jsou manualni. Cil: vsechno v jednom skriptu.
+Krok 5 uz neni blokovany `P1`, ale stale obsahuje dalsi dily problemy (`P8`, `P9`, `P11`, `P12`).
+Kroky 6-7 byly do 2026-04-12 vecer manualni kvuli `P5`; po fixu v repu uz chybi hlavne deploy na dalsi boxy a doostreni zbytku bootstrapu.
+Cil: vsechno v jednom skriptu bez rucnich oprav po prvnim bootu.
 
 ---
 
@@ -181,9 +186,9 @@ Dnes je krok 5 rozbitý (P1) a kroky 6-7 jsou manualni. Cil: vsechno v jednom sk
 
 | # | Effort | Impact | Popis |
 |---|--------|--------|-------|
-| P1 | Small | KRITICKE | Fix SB_ID env v provision.js |
-| P2 | Small | VYSOKE | Pridat volitelny `n` parametr do POST devices |
-| P5 | Medium | VYSOKE | Parametrizovat cesty v service unitech |
+| P1 | Small | KRITICKE | Fix SB_ID env v provision.js -- HOTOVO v live sb-manageru |
+| P2 | Small | VYSOKE | Pridat volitelny `n` parametr do POST devices -- HOTOVO v live API/UI |
+| P5 | Medium | VYSOKE | Parametrizovat cesty v service unitech -- HOTOVO v repu `sb/devva`, pending deploy |
 | P6 | Small | VYSOKE | Kompletni requirements.txt |
 | P8 | Small | VYSOKE | Deploy aktualni sb-manager na VPS |
 | P9 | Small | VYSOKE | PubkeyAuthentication fix v bootstrap |
