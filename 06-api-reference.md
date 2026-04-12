@@ -37,7 +37,7 @@ SmartBox-compatible auth is now also available directly on `pgepilot-service`:
 Current production state on 2026-04-12:
 - `auth.pgepilot.cz` still points to legacy `pgepilot_auth_srv`
 - `service.pgepilot.cz` serves the same SmartBox auth contract from `pgepilot-service`
-- SB4 is the first canary using `service.pgepilot.cz`; other boxes remain on legacy auth
+- SB1, SB4, and SB7 use `service.pgepilot.cz`; the remaining boxes stay on legacy auth
 
 ---
 

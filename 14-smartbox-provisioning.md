@@ -280,7 +280,7 @@ identifiers:
 Canary rollout rule (verified 2026-04-12):
 - default for existing boxes remains `https://auth.pgepilot.cz`
 - only explicitly migrated boxes should switch `pgepilot.auth_url` to `https://service.pgepilot.cz`
-- SB4 is the first box running on the new auth path
+- migrated boxes currently are SB1, SB4, and SB7
 
 ### 6c) Identita SmartBoxu (smartbox_config.yaml)
 

@@ -37,7 +37,7 @@ PgePilot is a cloud-based monitoring platform that collects data from PV inverte
 
 > **Note**: `pgepilot_beapp` (legacy PHP backend) is NOT running. It exists as a Docker image but is not started.
 > Workers 2 and 3 were added to distribute task execution load.
-> **Auth note (2026-04-12)**: `pgepilot-service` now also exposes legacy-compatible SmartBox auth endpoints (`/login`, `/refresh-token`, `/verify-token`, `/issue-smartbox-token`). SB4 is the current canary using `service.pgepilot.cz`; `auth.pgepilot.cz` stays active for the remaining boxes.
+> **Auth note (2026-04-12)**: `pgepilot-service` now also exposes legacy-compatible SmartBox auth endpoints (`/login`, `/refresh-token`, `/verify-token`, `/issue-smartbox-token`). SB1, SB4, and SB7 currently use `service.pgepilot.cz`; `auth.pgepilot.cz` stays active for the remaining boxes.
 
 ---
 
