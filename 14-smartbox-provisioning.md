@@ -415,6 +415,7 @@ ssh -J limited@ra-energity.cz -p <SSH_PORT> root@127.0.0.1 \
 
 3. **Per-machine config soubory NIKDY neprespisovat pri rsync deployi:**
    - `devices_config.yaml` (stridac IP, enabled stav)
+   - `comm_controller_config.yaml` (collection_point_id/device_id pro comm-controller)
    - `rpc_client_config.yaml` (cloud credentials)
    - `smartbox_config.yaml` (identita SmartBoxu)
 

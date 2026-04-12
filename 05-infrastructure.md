@@ -262,6 +262,7 @@ rsync -az --delete \
   --exclude='*.pyc' --exclude='.DS_Store' --exclude='._*' \
   --exclude='local_database/*.db*' --exclude='local_database/*.sqlite*' \
   --exclude='device_controller/devices_config.yaml' \
+  --exclude='communication_controller/comm_controller_config.yaml' \
   --exclude='communication_controller/smartbox_config.yaml' \
   --exclude='rpc_client/rpc_client_config.yaml' \
   --exclude='web_interface/config/backups/' \
