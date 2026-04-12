@@ -57,7 +57,7 @@
 **Pricina:** Skript a service soubory byly napsany pro SB1 (RPi, user energity1), ne pro obecny deploy
 **Workaround:** Rucni vytvoreni 7 service unit souboru na kazdem novem zarizeni
 **Oprava:** Bud parametrizovat cesty v install skriptu (detekce existujiciho adresare), nebo presunout service soubory do sablony ktera pouziva promenne (`$SB_ROOT`, `$VENV_PATH`)
-**Status (2026-04-12 vecer):** OPRAVENO V REPU `sb/devva` — `sb/systemd/install_systemd_services.sh` ted renderuje templated unity s autodetekci `SB_ROOT`, user/group a venv. Pending deploy na dalsi boxy.
+**Status (2026-04-13 noc):** OPRAVENO A NASAZENO. Templated systemd unity z `sb/devva` uz byly nasazeny i do runtime stacku na `sb1/sb4/sb7/sb13`; `sb13` bylo pri tom prepnuto na `energity-local-db`.
 
 ---
 
@@ -169,7 +169,18 @@
 **Dopad:** Chyba se neomezila jen na box configy; je uz i v `cp_connector_auth.machine_ids_json` a `cp_machines.id`.
 **Workaround:** Rucne vygenerovat validni UUID a konzistentne je prepsat v cloudu i na boxu.
 **Oprava:** Zprisnit validaci v `sb-manager` na UUID format pro `machine_id`, `masterMachineId`, `deviceId`, `collectionPointId`, `smartboxId` tam, kde to ma byt UUID, a pri sync/provisioningu failnout driv, nez se to zapise.
-**Status (2026-04-12 pozde vecer):** Z VELKE CASTI VYRESENO. Live `sb-manager@21df16b` a `pgepilot-service@1727f60` uz UUID striktne validuji. Rozbita live ID na `sb1 relay` a `sb7 inverter` byla opravena end-to-end v cloudu, `sb-manager` SQLite i na boxech a sync byl znovu uspesne proveden. Primy live probe na `https://service.pgepilot.cz/api/v2/smartbox-auth/provision` mimo `sb-manager` vraci pro nevalidni `machine_id` korektne `HTTP 400` s chybou `machines[0].machine_id must be a valid UUID`. Samostatny follow-up zustava jen pro `sb13`, ktere se resi mimo tento provisioning wave.
+**Status (2026-04-13 noc):** VYRESENO pro aktivni fleet. Live `sb-manager@21df16b` a `pgepilot-service@1727f60` uz UUID striktne validuji. Rozbita live ID na `sb1 relay`, `sb7 inverter` i `sb13 inverter` byla opravena end-to-end v cloudu, `sb-manager` SQLite i na boxech a sync byl znovu uspesne proveden. Primy live probe na `https://service.pgepilot.cz/api/v2/smartbox-auth/provision` mimo `sb-manager` vraci pro nevalidni `machine_id` korektne `HTTP 400` s chybou `machines[0].machine_id must be a valid UUID`.
+
+---
+
+### P17: Pri rucnem copy z Macu se muze rozbit ownership runtime souboru
+
+**Kde:** rsync/tar deploy z macOS do `/opt/energity/sb/*`
+**Co se stalo:** Na `sb13` po copy runtime souboru comm-controller padal na `PermissionError: [Errno 13] Permission denied: '/opt/energity/sb/communication_controller/communication_controller.log'`
+**Pricina:** Po copy zustaly casti runtime stromu s ownership/metadata z Macu a service user `energity` nemohl zapisovat do log souboru
+**Workaround:** `chown -R energity:energity /opt/energity/sb/communication_controller /opt/energity/sb/rpc_client /opt/energity/sb/local_database /opt/energity/sb/systemd`
+**Oprava:** Po kazdem manualnim file-level deployi na SB spustit ownership normalization; idealne doplnit do deploy/provisioning skriptu automaticky
+**Status (2026-04-13 noc):** OPRAVENO v live na `sb1/sb4/sb7/sb13`, ale je to porad proceduralni past pro dalsi manualni deploye
 
 ---
 
@@ -204,7 +215,7 @@ Cil: vsechno v jednom skriptu bez rucnich oprav po prvnim bootu.
 |---|--------|--------|-------|
 | P1 | Small | KRITICKE | Fix SB_ID env v provision.js -- HOTOVO v live sb-manageru |
 | P2 | Small | VYSOKE | Pridat volitelny `n` parametr do POST devices -- HOTOVO v live API/UI |
-| P5 | Medium | VYSOKE | Parametrizovat cesty v service unitech -- HOTOVO v repu `sb/devva`, pending deploy |
+| P5 | Medium | VYSOKE | Parametrizovat cesty v service unitech -- HOTOVO v repu i nasazeno do aktivnich SB runtime |
 | P6 | Small | VYSOKE | Kompletni requirements.txt |
 | P8 | ~~Small~~ | ~~VYSOKE~~ | ~~Deploy aktualni sb-manager na VPS~~ -- HOTOVO, live je `ef3261b` |
 | P9 | Small | VYSOKE | PubkeyAuthentication fix v bootstrap |
@@ -213,4 +224,5 @@ Cil: vsechno v jednom skriptu bez rucnich oprav po prvnim bootu.
 | P11 | Small | STREDNI | ServerAliveInterval default 15 |
 | P12 | Small | STREDNI | StartLimitIntervalSec=0 default |
 | P13 | Small | STREDNI | StartLimit do [Unit] sekce |
-| P16 | ~~Small~~ | ~~VYSOKE~~ | ~~UUID validace pro `machine_id` a oprava uz zapsanych spatnych ID~~ -- HOTOVO pro SB1/SB7, otevreny zbyva uz jen samostatny pripad SB13 |
+| P16 | ~~Small~~ | ~~VYSOKE~~ | ~~UUID validace pro `machine_id` a oprava uz zapsanych spatnych ID~~ -- HOTOVO pro aktivni fleet vcetne SB13 |
+| P17 | Small | STREDNI | Ownership normalization po rucnim copy z Macu |
