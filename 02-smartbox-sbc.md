@@ -54,7 +54,7 @@ Internet -> ra-energity.cz:443 -> nginx
   +-- sb1.ra-energity.cz         -> sb-router:9100 -> tunnel :20000 -> SB1:80
   +-- doma2.ra-energity.cz       -> sb-router:9100 (alias) -> :20000
   +-- sb1-ops.ra-energity.cz     -> sb-router:9100 -> tunnel :20005 -> SB1:3002
-  +-- sb1-health.ra-energity.cz  -> sb-router:9100 -> tunnel :20009 -> SB1:3007
+  +-- sb1-health.ra-energity.cz  -> sb-router:9100 -> tunnel :20000 -> SB1:80/health
 ```
 
 Config files: `/etc/sb-router/config.json`, `/etc/nginx/conf.d/01-sb-router-host-map.conf`
@@ -151,10 +151,9 @@ SB1 (192.168.0.51)                 VPS (195.201.19.103)
   VPS :20003  <->  SB1 :3000   config-api
   VPS :20004  <->  SB1 :3001   rpc-client
   VPS :20005  <->  SB1 :3002   sb-ops-agent
-  VPS :20009  <->  SB1 :3007   health aggregator
 ```
 
-**Port schema for multiple SBs**: `base = 20000 + (N-1) * 10`, offsets: +0=nginx, +2=ssh, +3=config, +4=api, +5=ops, +9=health
+**Port schema for multiple SBs**: `base = 20000 + (N-1) * 10`, offsets: +0=nginx + public `/health`, +2=ssh, +3=config, +4=api, +5=ops, `+9` reserved for legacy installs only
 
 Verified active SSH ports on VPS in this session:
 - SB1: `20002`
@@ -275,7 +274,7 @@ SmartBox LCD dashboard must use the display hardware that is physically present 
 | Platform | Display | Framebuffer | Touch | Provisioning note |
 |----------|---------|-------------|-------|-------------------|
 | M5Stack CoreMP135 (`sb4`, `sb7`) | Built-in ILI9342C, 320x240 | `/dev/fb1` | `evdev` swipe, usually `/dev/input/event0` | No extra display config; driver is loaded by the board image |
-| Raspberry Pi + 3.5" TFT HAT (`sb13` class) | ILI9486, 480x320 | `/dev/fb0` or `/dev/fb1` | Primary: SPI polling on `spidev0.1`; fallback: `evdev` | Requires `tft35a` overlay and display dependencies during provisioning |
+| Raspberry Pi 3 + 3.5" TFT HAT (`sb13` / Listany KD class) | ILI9486, 480x320 | `/dev/fb0` or `/dev/fb1` | Primary: SPI polling on `spidev0.1`; fallback: `evdev` | Requires `tft35a` overlay and display dependencies during provisioning |
 
 ### UI conventions
 

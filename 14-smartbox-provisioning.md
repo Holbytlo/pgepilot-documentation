@@ -221,7 +221,7 @@ Pravidlo:
 - touch pres `evdev`
 - neni potreba extra konfigurace v aplikaci
 
-**Raspberry Pi + 3.5" TFT HAT (`sb13` class)**
+**Raspberry Pi 3 + 3.5" TFT HAT (`sb13` / Listany KD class)**
 
 - ILI9486, `480x320`
 - framebuffer muze byt `/dev/fb0` nebo `/dev/fb1` podle rotace
