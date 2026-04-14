@@ -243,6 +243,29 @@ sb4 and sb1 share the same LAN and the same GoodWe inverter (192.168.0.70). **On
 
 **Rule:** On sb4 `devices_config.yaml`, main inverter is `enabled: false`. Only enable for testing when sb1 DC is stopped first.
 
+### GoodWe discovery modes (current standard)
+
+GoodWe now has three supported connection patterns on SmartBox:
+
+1. `static`
+   - use when site IP is fixed and known
+   - safest for sites with multiple GoodWe units on one LAN
+
+2. `dhcp + mac_address`
+   - use when inverter IP can change but HW binding must stay exact
+   - SmartBox resolves the current IP from ARP on the SmartBox subnet plus optional fallback subnets
+
+3. `dhcp` without `mac_address` on `GoodWeInverterDriver`
+   - commissioning-friendly active scan mode
+   - SmartBox probes the local subnet for GoodWe-compatible Modbus endpoints
+   - if exactly one candidate is found, it is used automatically
+   - if more than one candidate is found, SmartBox fails intentionally as ambiguous; technician must switch to `static` or `dhcp + mac_address`
+
+Operational rule:
+- for new GoodWe images, default seed config should start in mode `dhcp` without `mac_address`
+- for customer sites with more than one GoodWe on the same LAN, auto-scan is not enough; final commissioning must pin the box to one inverter via static IP or MAC binding
+- `sb-manager` is the canonical place to edit the primary inverter connector on a live box and trigger GoodWe detection through the SB `config-api`
+
 ### Deye driver (merged 2026-04-11, commit 5322f3f)
 
 `origin/devva` contains DeyeInverterDriver, but live SB1 does not have this commit yet. sb4 was used for the smoke test and SB1 can receive the same additive deploy later. Files added:

@@ -2,7 +2,10 @@
 
 > Problemy zjistene pri rucnim provisioningu sb7, sb13 a sb4.
 > Kazdy problem ma popis, workaround, a navrh opravy.
-> Posledni aktualizace: 2026-04-13
+> Posledni aktualizace: 2026-04-14
+
+Operativni checklist pro novy image je ted vedeny zvlast v `17-smartbox-new-image-checklist.md`.
+Tento dokument zustava backlogem problemu a opakujicich se pasti, ne hlavnim step-by-step runbookem.
 
 ---
 
