@@ -144,6 +144,14 @@ This is the required delivery order for the auth program. Do not skip directly f
 | 1.8.9 | Production cutover | Final switch to PgePilot-owned auth | No production login flow goes to `pmo.pgeuser.cz` |
 | 1.8.10 | Remove legacy auth paths | Migration is not complete until old paths are deleted | No PMO human-login dependency remains in PgePilot |
 
+Immediate next action:
+
+- close `1.8.1` and `1.8.2` together as one work package:
+  - approve final human-auth hostname
+  - freeze `auth.pgepilot.cz` as legacy SmartBox-only
+  - mark `pmo.pgeuser.cz` as temporary-only
+  - prepare DNS / TLS / ingress target for the new PgePilot-owned auth host
+
 ---
 
 ## Priority 2 -- New Features (2-4 weeks)
