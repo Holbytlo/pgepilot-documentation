@@ -1,7 +1,7 @@
 # 09 -- Development Roadmap
 
 > Current production state, completed milestones, and prioritized work items.
-> Last updated: 2026-04-12
+> Last updated: 2026-04-19
 
 ---
 
@@ -18,7 +18,7 @@
 | JobManager scheduler | Production | Current recurring runtime is DB-backed through `task_definitions`; legacy `pgepilot-js` scheduler block stays commented on current `main`. Runtime is clean `main@4346047`. |
 | SmartBox SB1 | Production (monitoring) | Core services + tunnel are active. Runtime content is rsync-aligned with the current local `sb/devva@45a2fc0` on audited key files, and the box now uses its own SmartBox cloud identity (`sbx_sb1_f9bcdf`). Hostname is still `energity1`. Relay `machine_id` was repaired to valid UUID `8528b7a4-b3e9-4518-9d02-5faf395927c7` and cloud sync was re-run successfully on `2026-04-12` late evening. |
 | SmartBox sb4 | Dev (at home) | Runtime content matches the same audited `sb/devva@45a2fc0` files as SB1/SB7. `energity-display` is active, GoodWe inverter stays disabled to avoid Modbus collision with sb1, and the box now uses its own SmartBox cloud identity (`sbx_sb4_ba8906`). |
-| SmartBox sb7 | Provisioned / waiting on-site activation | Runtime content matches the same audited `sb/devva@45a2fc0` files as SB1/SB4 and the box now uses its own SmartBox cloud identity (`sbx_sb7_70862d`). Inverter `machine_id` was repaired to valid UUID `ceefa067-dc8a-463c-b3ca-99b0b17dc510` and cloud sync was re-run successfully on `2026-04-12` late evening. Current sb-manager metadata is standardized to `alias=chlumzs`, `notes=Chlumcany Skola`. Deye config is still placeholder/customer-prep only: `enabled:false`, placeholder Solarman IP, placeholder `logger_serial`, so on-site finalization is still required. |
+| SmartBox sb7 | Provisioned / on-site activation in progress | Runtime content matches the same audited `sb/devva@45a2fc0` files as SB1/SB4 and the box now uses its own SmartBox cloud identity (`sbx_sb7_70862d`). Inverter `machine_id` was repaired to valid UUID `ceefa067-dc8a-463c-b3ca-99b0b17dc510` and cloud sync was re-run successfully on `2026-04-12` late evening. Current sb-manager metadata is standardized to `alias=chlumzs`, `notes=Chlumcany Skola`. Live on-site work on `2026-04-15` confirmed the real inverter model is **Deye SUN-50K-SG01HP3-EU-BM4** on Solarman (`192.168.1.10:8899`, logger serial `2985345042`), not the previously assumed low-voltage `SG04LP3` family. Solarman transport is now fixed, but the committed Deye register map still targets `SUN-xK-SG04LP3-EU`, so telemetry semantics remain wrong until the HV `SG01HP3` map is added. |
 | SmartBox TOU | In progress | Spec ready, not yet implemented on real SB |
 | sb-manager | Production (historically unstable) | Live runtime is `main@21df16b`. PM2 restart counter is `169` as of `2026-04-12 23:16 CEST`; current uptime is short because of same-day deploy/restart, so treat the counter as historical instability signal, not the current uptime as a health metric. |
 | Email API | Production | 5 profiles (servis, automat, technika, obchod, info) |
@@ -125,6 +125,24 @@ Items left incomplete from the last development session. Start here before new w
 | 1.5 | PV forecast for all CPs | Add pv_forecast_config for more plants (currently only VA + Kder Veltrusy) | Medium |
 | 1.6 | SolaX backfill | Nov 2025 - Mar 2026 not completed (was killed) | Medium |
 | 1.7 | GoodWe backfill | Complete history for all GW plants | Medium |
+| 1.8 | **PgePilot Auth migration** | Highest auth priority. Replace live PMO dependency with dedicated `PgePilot Auth`, migrate `pge-app`, `sb-manager`, and `servisdesk`, and move browser login to secure `HttpOnly` cookie sessions without URL/localStorage tokens. Execution details live in `19-pgepilot-auth-migration-plan.md`. | Large |
+
+### Priority 1.8 -- Execution Checkpoints For Final Auth Migration
+
+This is the required delivery order for the auth program. Do not skip directly from current PMO-backed runtime to production cutover.
+
+| Step | Checkpoint | Why it matters | Gate to next step |
+|------|------------|----------------|-------------------|
+| 1.8.1 | Approve final public auth hostname | `auth.pgepilot.cz` is still colliding with legacy SmartBox auth | One approved hostname exists for human auth |
+| 1.8.2 | Close PMO/ERP deconfliction | Live `sb-manager` still redirects to `pmo.pgeuser.cz` | PMO is treated only as temporary legacy dependency |
+| 1.8.3 | Inventory and map all human identities | Current users are split across `cp_users`, `cp_user_grants`, ERP-side `pge-auth`, and `pge-app` legacy `pgep_users` fallback | Every account has a migration or remediation path |
+| 1.8.4 | Build `pgepilot-auth` on dev | Final security model must exist before app rewrites | Dev auth supports code flow, secure cookies, audit, reset, CSRF |
+| 1.8.5 | Integrate `pge-app` on dev | Hardest legacy login path must be cleaned first | `pge-app` no longer relies on direct JWT login or `pgep_users` fallback |
+| 1.8.6 | Integrate `sb-manager` on dev | Removes live dependency on PMO for operator login | Dev `sb-manager` no longer redirects to PMO |
+| 1.8.7 | Integrate `servisdesk` on dev | Completes the common operator auth model | All three apps authenticate through dev `PgePilot Auth` |
+| 1.8.8 | Run security and rollback verification | This is audit-sensitive work, not only UX work | Per-app rollback, CSRF, timeout, callback validation, and secure-cookie checks pass |
+| 1.8.9 | Production cutover | Final switch to PgePilot-owned auth | No production login flow goes to `pmo.pgeuser.cz` |
+| 1.8.10 | Remove legacy auth paths | Migration is not complete until old paths are deleted | No PMO human-login dependency remains in PgePilot |
 
 ---
 
