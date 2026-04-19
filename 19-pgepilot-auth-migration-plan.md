@@ -358,6 +358,67 @@ Exit criteria:
 - there is one approved callback list
 - there is one approved logout model
 
+### Phase 0.1 -- Immediate Work Package: Hostname And PMO Deconfliction
+
+This is the next concrete delivery step. Without it, the rest of the migration remains blocked on naming and ownership.
+
+Recommended decision:
+
+- use a new human-auth hostname such as `login.pgepilot.cz`
+- do **not** reuse `auth.pgepilot.cz` for human login in this phase
+- treat `pmo.pgeuser.cz` only as temporary legacy dependency to be removed
+
+Why this is the best next step:
+
+- it avoids collision with legacy SmartBox auth
+- it makes ownership explicit: human login belongs to PgePilot, not ERP / PMO
+- it gives app teams one stable target for callback and cookie work
+
+Required outputs for this work package:
+
+1. Hostname decision record
+   - approved final public hostname for human auth
+   - approved dev hostname pattern
+   - explicit statement that `pmo.pgeuser.cz` is not the target platform
+
+2. Legacy hostname freeze
+   - document that `auth.pgepilot.cz` remains reserved for legacy SmartBox auth until explicit decommission
+   - forbid new human-auth integrations from using `auth.pgepilot.cz`
+
+3. DNS / TLS readiness plan
+   - DNS record for final auth host
+   - TLS certificate plan
+   - reverse proxy / ingress placement
+   - public callback reachability plan for:
+     - `pge-app`
+     - `sb-manager`
+     - `servisdesk`
+
+4. Environment contract
+   - final names for auth env vars across apps
+   - expected values in dev
+   - expected values in production
+   - explicit removal plan for current PMO values in production envs
+
+5. Redirect and cookie scope agreement
+   - approved redirect URIs per app
+   - approved cookie host scope per app host
+   - approved same-site behavior
+
+Suggested env target after this decision:
+
+- `PGE_AUTH_PUBLIC_URL=https://login.pgepilot.cz`
+- `PGE_AUTH_URL=<internal pgepilot-auth service URL>`
+- `PGE_AUTH_APP_ID=<per-app id>`
+
+Go / no-go checks for closing this work package:
+
+- one approved public hostname exists for human auth
+- `auth.pgepilot.cz` is explicitly marked as legacy-only
+- PMO auth is explicitly marked as temporary-only
+- all three apps have known redirect targets
+- DNS / TLS / ingress owners are identified
+
 ### Phase 1 -- Inventory And Identity Cleanup
 
 Goal:
