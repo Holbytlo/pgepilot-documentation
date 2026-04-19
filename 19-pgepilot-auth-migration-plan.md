@@ -451,6 +451,91 @@ Exit criteria:
 - no legacy `pgep_users` account is left without explicit remediation plan
 - there is a migration mapping for all app roles and permissions
 
+### Phase 1.1 -- Immediate Work Package: Identity Inventory And Mapping
+
+This is the next concrete work package after hostname ownership is frozen.
+
+Goal:
+
+- produce one migration-ready inventory of all human users, roles, and fallback accounts
+
+Why this is the next required step:
+
+- auth implementation cannot be considered complete if it does not know who must be migrated
+- `pge-app`, `sb-manager`, and `servisdesk` do not currently authenticate against one clean source
+- production cutover will fail if legacy fallback users are discovered only during rollout
+
+Required source inventories:
+
+1. `pge-app` sources
+   - `cp_users`
+   - `cp_user_grants`
+   - legacy `pgep_users`
+
+2. current operator auth sources
+   - ERP-side `pge-auth` `users`
+   - ERP-side `roles`
+   - ERP-side `role_permissions`
+   - ERP-side `user_permission_overrides`
+
+3. app-level authorization consumers
+   - `pge-app` grant semantics
+   - `sb-manager` `readonly / ops / admin` mapping
+   - `servisdesk` allowed role / permission rules
+
+Required outputs:
+
+1. User inventory table
+   - source system
+   - source user ID
+   - username / email
+   - enabled / disabled state
+   - last known usage if available
+   - app usage scope
+
+2. Role and permission inventory
+   - effective roles per user
+   - effective permissions per user
+   - app-specific mapping notes
+
+3. Fallback risk list
+   - all accounts that still work only through `pgep_users`
+   - all accounts missing canonical email / username
+   - all accounts duplicated across systems
+   - all accounts with conflicting permissions between sources
+
+4. Migration action per account
+   - migrate unchanged
+   - merge into another canonical account
+   - disable
+   - require password reset
+   - require manual remediation before cutover
+
+Mandatory mapping rules to decide now:
+
+- canonical login identifier:
+  - email-only
+  - username-only
+  - or email + username alias
+- duplicate-account merge rules
+- disabled-account handling
+- password reset behavior for imported accounts
+- authority for app-specific permission translation
+
+Recommended deliverable format:
+
+- one spreadsheet or table export containing all candidate human accounts
+- one mapping table from source permissions to target `PgePilot Auth` permissions
+- one explicit remediation list for accounts that cannot be migrated automatically
+
+Go / no-go checks for closing this work package:
+
+- every human account used by `pge-app`, `sb-manager`, or `servisdesk` appears in the inventory
+- every `pgep_users` fallback account is explicitly classified
+- every duplicate account has a merge or remediation decision
+- target permission mapping exists for all three apps
+- no production-only human account remains undocumented
+
 ### Phase 2 -- Build `pgepilot-auth` On Dev
 
 Goal:
