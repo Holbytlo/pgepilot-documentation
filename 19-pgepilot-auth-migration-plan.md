@@ -829,6 +829,74 @@ Go / no-go checks for closing this work package:
 - SmartBox provisioning and non-human auth paths still work unchanged
 - no SmartBox or provisioning path depends on browser session or PMO auth
 
+### Phase 3.3 -- Immediate Work Package: `servisdesk` Dev Cutover
+
+This is the final app-integration package before the program can move into security and rollback verification.
+
+Goal:
+
+- move `servisdesk` dev to `pgepilot-auth` while preserving its existing operator permission gates and completing one shared auth model across all three human-facing apps
+
+Why this is the next required step:
+
+- `servisdesk` finishes the migration proof that one auth contract can cover all PgePilot operator apps
+- unlike `sb-manager`, `servisdesk` enforces its own role and permission rules, so the migration must prove those semantics still hold after central auth changes
+- security and production-readiness checks are incomplete until the third app is on the same dev auth flow
+
+Required implementation outputs:
+
+1. Dev auth wiring replacement
+   - replace PMO / ERP auth dependency in `servisdesk` dev config with dev `pgepilot-auth`
+   - verify login start and callback target only the approved dev auth host
+   - verify no browser login path still depends on PMO URL patterns
+
+2. Callback and session exchange
+   - implement backend code exchange against dev `pgepilot-auth`
+   - create secure app-local session cookie for `servisdesk`
+   - verify authenticated API calls resolve user identity from the new session model
+
+3. Permission-gate preservation
+   - preserve current role / permission gate semantics
+   - verify allowed operator roles retain expected access
+   - verify unauthorized or disabled users fail closed
+
+4. Logout and expiry behavior
+   - verify logout clears `servisdesk` app session correctly
+   - verify expired session loses access cleanly and redirects correctly
+   - verify callback tampering or invalid code exchange is rejected
+
+5. Dev test pack for `servisdesk`
+   - login success
+   - login failure
+   - unauthorized role rejection
+   - disabled user rejection
+   - logout success
+   - session expiry behavior
+   - callback tampering rejection
+   - no redirect to `pmo.pgeuser.cz`
+
+Mandatory decisions to freeze in this package:
+
+- exact mapping from central auth permissions into `servisdesk` allow rules
+- whether any `servisdesk`-specific compatibility flag is allowed during transition
+- exact rejection behavior for valid login with insufficient permission
+
+Recommended implementation sequence:
+
+1. switch dev auth env wiring away from PMO
+2. adapt `servisdesk` login callback and code exchange to the common contract
+3. validate session-based user resolution for UI and API routes
+4. verify permission gates, denial behavior, logout, and expiry
+5. run browser and API verification for success, failure, denial, and tampering
+
+Go / no-go checks for closing this work package:
+
+- no dev `servisdesk` browser login redirect points to `pmo.pgeuser.cz`
+- `servisdesk` session is created through dev `pgepilot-auth` and secure app-local cookies
+- existing `servisdesk` permission-gate behavior matches pre-migration expectations
+- unauthorized, disabled, expired, and tampered-session cases fail closed
+- all three apps now authenticate through the same dev `pgepilot-auth` contract
+
 ### Phase 4 -- Security Verification And Operational Readiness
 
 Goal:

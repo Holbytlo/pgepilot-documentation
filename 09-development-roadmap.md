@@ -180,6 +180,13 @@ Immediate follow-up after `pge-app` dev cutover:
   - preserve `readonly / ops / admin` behavior
   - verify SmartBox provisioning and box-facing auth paths remain outside human interactive login
 
+Immediate follow-up after `sb-manager` dev cutover:
+
+- execute `1.8.7` as one `servisdesk` cutover package:
+  - replace PMO/ERP auth dependency with dev `pgepilot-auth`
+  - preserve current `servisdesk` role and permission gates
+  - verify denial, logout, expiry, and callback-tampering behavior before entering security-readiness phase
+
 ---
 
 ## Priority 2 -- New Features (2-4 weeks)
