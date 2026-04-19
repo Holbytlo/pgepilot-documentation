@@ -152,6 +152,13 @@ Immediate next action:
   - mark `pmo.pgeuser.cz` as temporary-only
   - prepare DNS / TLS / ingress target for the new PgePilot-owned auth host
 
+Immediate follow-up after hostname freeze:
+
+- execute `1.8.3` as one inventory package:
+  - export all human users from `cp_users`, `cp_user_grants`, ERP-side `pge-auth`, and legacy `pgep_users`
+  - classify duplicate, fallback-only, disabled, and remediation-required accounts
+  - prepare one canonical mapping table for app permissions in `pge-app`, `sb-manager`, and `servisdesk`
+
 ---
 
 ## Priority 2 -- New Features (2-4 weeks)
