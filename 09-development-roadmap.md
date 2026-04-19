@@ -159,6 +159,13 @@ Immediate follow-up after hostname freeze:
   - classify duplicate, fallback-only, disabled, and remediation-required accounts
   - prepare one canonical mapping table for app permissions in `pge-app`, `sb-manager`, and `servisdesk`
 
+Immediate follow-up after identity inventory:
+
+- execute `1.8.4` as one dev-auth bootstrap package:
+  - stand up dev `pgepilot-auth` on the approved dev hostname
+  - freeze callback, code-exchange, and secure-cookie contract
+  - verify redirect allowlist, one-time code replay protection, and logout invalidation
+
 ---
 
 ## Priority 2 -- New Features (2-4 weeks)
