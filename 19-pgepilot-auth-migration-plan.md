@@ -575,6 +575,84 @@ Exit criteria:
 - dev auth is functional end to end
 - dev auth satisfies the target browser security model
 
+### Phase 2.1 -- Immediate Work Package: Dev Auth Contract And Bootstrap
+
+This is the first concrete implementation package after identity inventory and mapping is closed.
+
+Goal:
+
+- stand up one dev `pgepilot-auth` baseline that all three apps can integrate against without redesigning the auth contract again
+
+Why this is the next required step:
+
+- app integrations should not start until the callback, cookie, and code-exchange contract is fixed
+- audit-sensitive security behavior must be defined in the auth service first, not recreated separately in each app
+- dev rollout will stall if hostname, cookie scope, and session ownership stay implicit
+
+Required implementation outputs:
+
+1. Dev auth service bootstrap
+   - running `pgepilot-auth` service in dev
+   - dev hostname and reverse proxy / ingress wiring
+   - isolated dev config and secrets
+
+2. Baseline auth contract
+   - `GET /login`
+   - `POST /auth/login`
+   - `POST /auth/code/exchange`
+   - `POST /auth/logout`
+   - `GET /auth/session`
+   - `POST /auth/password/change`
+   - `POST /auth/password/reset/request`
+   - `POST /auth/password/reset/confirm`
+
+3. Code-flow and session design
+   - one-time auth code issuance
+   - short code TTL
+   - redirect allowlist per app
+   - central auth session at `pgepilot-auth`
+   - app-local session cookie after backend exchange
+
+4. Cookie and browser security baseline
+   - `HttpOnly` cookies
+   - `Secure` cookies
+   - explicit `SameSite` behavior
+   - host-only app cookies
+   - CSRF strategy for state-changing endpoints
+
+5. Dev test and verification pack
+   - successful login flow on dev auth host
+   - rejected unapproved redirect target
+   - expired / reused code rejection
+   - logout invalidates auth session and app session
+   - no reusable auth token in URL or browser storage
+
+Mandatory design decisions to freeze in this package:
+
+- exact auth-code lifetime
+- exact cookie names and scope per app host
+- central session TTL and idle timeout
+- logout propagation behavior
+- password bootstrap / first-login behavior for migrated users
+
+Recommended implementation sequence:
+
+1. bootstrap service skeleton and dev host
+2. implement code issuance and code exchange
+3. implement secure cookie session handling
+4. implement session introspection and logout
+5. implement password change / reset baseline
+6. run browser and backend verification in dev
+
+Go / no-go checks for closing this work package:
+
+- one dev `pgepilot-auth` endpoint is reachable through the approved dev hostname
+- redirect allowlist is enforced
+- one-time code exchange works and rejects replay
+- app-local cookie session can be created without exposing reusable token material to browser JS
+- logout invalidates both central auth session and exchanged app session
+- no remaining design ambiguity blocks app integration work
+
 ### Phase 3 -- Integrate Apps On Dev
 
 Goal:
