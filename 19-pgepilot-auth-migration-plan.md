@@ -696,6 +696,72 @@ Exit criteria:
 - all three apps use app-local secure cookies
 - no app still needs PMO auth in dev
 
+### Phase 3.1 -- Immediate Work Package: `pge-app` Dev Cutover
+
+This is the first app-integration package after the dev auth contract is stable.
+
+Goal:
+
+- make `pge-app` authenticate through dev `pgepilot-auth` and remove its legacy browser-login dependency before the same pattern is reused by other apps
+
+Why this must be first:
+
+- `pge-app` still carries the hardest legacy login behavior, including direct browser login flow and `pgep_users` fallback risk
+- if `pge-app` is not cleaned first, the migration can appear complete while a legacy human-login path still exists
+- `sb-manager` and `servisdesk` can then reuse the verified callback and session pattern without dragging the old `pge-app` assumptions forward
+
+Required implementation outputs:
+
+1. Browser login flow replacement
+   - replace direct login form submission with central redirect to dev `pgepilot-auth`
+   - implement callback handling for auth-code return
+   - complete backend code exchange and app-session creation
+
+2. Session resolution cleanup
+   - resolve current user from secure app session instead of browser-held JWT
+   - verify protected routes and API calls work with app-local cookie session
+   - verify logout clears app session and redirects correctly
+
+3. Legacy path removal
+   - remove or hard-disable direct browser JWT login path for dev
+   - remove or hard-disable `pgep_users` fallback for human login in dev
+   - document any remaining non-human compatibility path separately if it still exists
+
+4. Permission and identity verification
+   - verify `cp_users` and `cp_user_grants` mapping through the new auth identity model
+   - verify admin and non-admin behavior on dev
+   - verify disabled or remediation-required users are rejected correctly
+
+5. Dev test pack for `pge-app`
+   - login success
+   - login failure
+   - disabled user rejection
+   - stale or replayed auth code rejection
+   - logout success
+   - route protection after session expiry
+
+Mandatory decisions to freeze in this package:
+
+- exact compatibility behavior for any remaining API clients expecting old login semantics
+- whether any temporary feature flag is allowed during transition
+- exact cut point where `pgep_users` fallback is considered removed for dev
+
+Recommended implementation sequence:
+
+1. wire redirect start and callback in `pge-app`
+2. implement backend code exchange and secure session establishment
+3. switch protected UI and API auth checks to session-based user resolution
+4. remove legacy browser login and fallback path in dev
+5. run manual and automated dev verification for success, failure, expiry, and logout
+
+Go / no-go checks for closing this work package:
+
+- `pge-app` login starts at dev `pgepilot-auth` and returns through the approved callback
+- no dev browser login path still depends on direct JWT submission
+- no dev human login still succeeds through `pgep_users` fallback
+- app session survives normal navigation and fails closed after expiry or logout
+- role and grant behavior matches pre-migration expectations for allowed users
+
 ### Phase 4 -- Security Verification And Operational Readiness
 
 Goal:
