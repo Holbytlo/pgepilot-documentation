@@ -166,6 +166,13 @@ Immediate follow-up after identity inventory:
   - freeze callback, code-exchange, and secure-cookie contract
   - verify redirect allowlist, one-time code replay protection, and logout invalidation
 
+Immediate follow-up after dev auth bootstrap:
+
+- execute `1.8.5` as one `pge-app` cutover package:
+  - replace direct browser login with central redirect and callback exchange
+  - remove or hard-disable legacy `pgep_users` fallback for dev human login
+  - verify secure session, logout, expiry, and grant behavior before reusing the pattern in other apps
+
 ---
 
 ## Priority 2 -- New Features (2-4 weeks)
