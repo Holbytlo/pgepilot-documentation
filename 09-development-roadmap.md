@@ -173,6 +173,13 @@ Immediate follow-up after dev auth bootstrap:
   - remove or hard-disable legacy `pgep_users` fallback for dev human login
   - verify secure session, logout, expiry, and grant behavior before reusing the pattern in other apps
 
+Immediate follow-up after `pge-app` dev cutover:
+
+- execute `1.8.6` as one `sb-manager` cutover package:
+  - replace PMO redirect/config dependency with dev `pgepilot-auth`
+  - preserve `readonly / ops / admin` behavior
+  - verify SmartBox provisioning and box-facing auth paths remain outside human interactive login
+
 ---
 
 ## Priority 2 -- New Features (2-4 weeks)

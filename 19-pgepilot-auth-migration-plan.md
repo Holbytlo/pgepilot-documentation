@@ -762,6 +762,73 @@ Go / no-go checks for closing this work package:
 - app session survives normal navigation and fails closed after expiry or logout
 - role and grant behavior matches pre-migration expectations for allowed users
 
+### Phase 3.2 -- Immediate Work Package: `sb-manager` Dev Cutover
+
+This is the next app-integration package after `pge-app` proves the auth contract in dev.
+
+Goal:
+
+- replace the current PMO-backed human login path in `sb-manager` dev with dev `pgepilot-auth` while preserving SmartBox-specific access paths and current manager RBAC
+
+Why this is the next required step:
+
+- `sb-manager` is the clearest live example of the PMO dependency that must be removed
+- it already uses a central-redirect style flow, so it should reuse the new contract instead of inventing a separate login model
+- the migration must prove that operator login can change without touching SmartBox provisioning and box-level auth behavior
+
+Required implementation outputs:
+
+1. Dev auth wiring replacement
+   - replace PMO auth base URLs in `sb-manager` dev config with dev `pgepilot-auth`
+   - keep per-app `PGE_AUTH_APP_ID` semantics
+   - verify `/api/v1/auth/start` redirects only to the approved dev auth host
+
+2. Callback and session exchange
+   - implement backend code exchange against dev `pgepilot-auth`
+   - create app-local secure session for operator browser login
+   - verify auth/session endpoints no longer depend on PMO token semantics
+
+3. RBAC preservation
+   - preserve `readonly / ops / admin` app role mapping
+   - verify effective permissions for non-admin and admin users
+   - verify denied users fail closed
+
+4. SmartBox boundary protection
+   - keep `POST /api/v1/provision/register` outside interactive human-login flow
+   - verify SmartBox provisioning and SmartBox token flows still work unchanged
+   - verify no box-facing path starts depending on human browser session
+
+5. Dev test pack for `sb-manager`
+   - login success
+   - login failure
+   - unauthorized role rejection
+   - logout success
+   - session expiry behavior
+   - provisioning path still works without interactive auth
+   - `/api/v1/auth/start` no longer redirects to `pmo.pgeuser.cz`
+
+Mandatory decisions to freeze in this package:
+
+- exact operator role mapping from `PgePilot Auth` permissions into `readonly / ops / admin`
+- whether any temporary compatibility env var is allowed during transition
+- exact list of routes that must stay outside human interactive auth
+
+Recommended implementation sequence:
+
+1. switch dev auth env wiring away from PMO
+2. adapt `sb-manager` callback and exchange flow to the new code-based contract
+3. validate session-based user resolution and RBAC checks
+4. verify provisioning and SmartBox paths remain isolated
+5. run browser and API verification for login, denial, logout, expiry, and provisioning
+
+Go / no-go checks for closing this work package:
+
+- no dev `sb-manager` browser login redirect points to `pmo.pgeuser.cz`
+- `sb-manager` operator session is created through dev `pgepilot-auth` and secure app-local cookies
+- `readonly / ops / admin` behavior matches pre-migration expectations
+- SmartBox provisioning and non-human auth paths still work unchanged
+- no SmartBox or provisioning path depends on browser session or PMO auth
+
 ### Phase 4 -- Security Verification And Operational Readiness
 
 Goal:
