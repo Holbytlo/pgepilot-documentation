@@ -2,7 +2,7 @@
 
 > **For AI/LLM agents.** Read this file first. Each entry has a one-line description so you know exactly what to read next.
 >
-> Last updated: 2026-04-24
+> Last updated: 2026-04-27
 
 ---
 
@@ -32,12 +32,13 @@
 | 20 | [20-pgeusers-small-apps-handoff.md](20-pgeusers-small-apps-handoff.md) | Recommended target model for small apps on pgeusers: admin hub, per-app routing, auth separation, and raw-port retirement |
 | 21 | [21-smallapp-manager-phase1.md](21-smallapp-manager-phase1.md) | Phase-1 execution spec for the standalone smallapp-manager service, including scope, routes, security baseline, and rollout acceptance criteria |
 | 22 | [22-auth-schema-apps.md](22-auth-schema-apps.md) | Graphical schema of current live auth across pge-app, sb-manager, and servisdesk, including login flow and authorization rules |
+| 23 | [23-smartbox-fleet-registry.md](23-smartbox-fleet-registry.md) | Canonical SmartBox fleet registry: labels, aliases, customer/site mapping, expected inverter class, and current provisioning blockers |
 | -- | [AUDIT_PROCEDURE.md](AUDIT_PROCEDURE.md) | Step-by-step server audit commands for verifying docs against reality |
 
 ## How to Use
 
 - **Working on PgePilot cloud?** Start with `01`, then `06` (API), `07` (entities).
-- **Working on SmartBox?** Start with `02`, then `17` (new image checklist), `14` (provisioning), `06` (RPC section), `07` (entities).
+- **Working on SmartBox?** Start with `23` (fleet registry), then `02`, `17` (new image checklist), `14` (provisioning), `06` (RPC section), `07` (entities).
 - **Installing a new SmartBox?** Read `17` first (operational checklist), then `14` (full provisioning guide).
 - **Working on the web app?** Start with `03`, then `06` (API).
 - **Need infrastructure details?** Read `05`.

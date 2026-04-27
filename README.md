@@ -36,6 +36,7 @@ INDEX.md                     <-- AI entry point: file map
 11-email-api.md              <-- Email API reference
 16-current-handoff.md        <-- Short active handoff for next chat/window
 17-smartbox-new-image-checklist.md <-- Practical checklist for new MP135/RPi image rollout
+23-smartbox-fleet-registry.md <-- Canonical SmartBox label/alias/customer registry
 cs/                          <-- Czech human-readable mirror
 assets/                      <-- Wireframes, PDFs, diagrams
 ```
