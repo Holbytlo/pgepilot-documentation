@@ -34,7 +34,7 @@ INDEX.md                     <-- AI entry point: file map
 09-development-roadmap.md    <-- Current state and priorities
 10-security.md               <-- Known risks and hardening plan
 11-email-api.md              <-- Email API reference
-16-current-handoff.md        <-- Live handoff for next chat/window
+16-current-handoff.md        <-- Short active handoff for next chat/window
 17-smartbox-new-image-checklist.md <-- Practical checklist for new MP135/RPi image rollout
 cs/                          <-- Czech human-readable mirror
 assets/                      <-- Wireframes, PDFs, diagrams
@@ -47,6 +47,9 @@ assets/                      <-- Wireframes, PDFs, diagrams
 3. **Never commit credentials.** Use `[REDACTED]` placeholders and reference the private OneDrive folder: `zadani/pristupy a servery/PGEERP_Knowledge_Base.md`.
 4. **Keep INDEX.md up to date** whenever a file is added, removed, or significantly changed.
 5. **Date every update** in the header of each document (format: YYYY-MM-DD).
+6. **Keep historical handoffs out of the active read path.** Archive old
+   session state under `../.archive/` and leave only short pointers in active
+   docs.
 
 ## Credentials
 

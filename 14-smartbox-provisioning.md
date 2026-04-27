@@ -54,7 +54,9 @@ Na sb-manazer.ra-energity.cz:
 ## Faze 2: Flash SD karty
 
 Kanonicky operativni checklist je ted v `17-smartbox-new-image-checklist.md`.
-Historicky MP135-only runbook v `mp135/debian-flash-runbook.md` ber jen jako pomocny lokalni artifact, ne jako hlavni source of truth.
+Historicky MP135-only runbook je v cold archivu
+`../.archive/2026-04-24_docs_cleanup/mp135/debian-flash-runbook.md`.
+Ber ho jen jako pomocný lokální artifact, ne jako hlavní source of truth.
 
 ### Strucne:
 1. Extrahovat `.7z` image (M5Stack Debian 12 pro CoreMP135, nebo standardni RPi OS pro Raspberry Pi)
@@ -518,8 +520,8 @@ ssh -J limited@ra-energity.cz -p <SSH_PORT> root@127.0.0.1 \
 | SmartBox architektura | `pgepilot-documentation/02-smartbox-sbc.md` | SB1/sb4 detail, sluzby, driver hierarchy, known issues |
 | Infrastruktura | `pgepilot-documentation/05-infrastructure.md` | VPS, deploy procedure, servery |
 | Development roadmap | `pgepilot-documentation/09-development-roadmap.md` | Handoff items, hardening tasks |
-| Flash runbook (CoreMP135) | `mp135/debian-flash-runbook.md` | SD karta, image, RPi Imager |
-| sb4 handover | `mp135/HANDOVER-sb4.md` | Kompletni sb4 device state |
+| Flash runbook (CoreMP135) | `../.archive/2026-04-24_docs_cleanup/mp135/debian-flash-runbook.md` | Historický artifact: SD karta, image, RPi Imager |
+| sb4 handover | `../.archive/2026-04-24_docs_cleanup/mp135/HANDOVER-sb4.md` | Historický artifact: kompletní sb4 device state |
 | Bootstrap skript (sablona) | `sb-manager/src/templates/sb_bootstrap.sh` | Zdrojovy kod bootstrapu |
 | sb-ops-agent | `sb-manager/packages/sb-ops-agent/server.mjs` | Health endpoint, system info |
 | Health monitor | `sb-manager/src/lib/deviceHealthMonitor.js` | VPS compliance check |

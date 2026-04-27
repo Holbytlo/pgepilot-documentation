@@ -1,7 +1,7 @@
 # 01 -- PgePilot Cloud Platform
 
 > Cloud monitoring and control platform for photovoltaic installations.
-> Last updated: 2026-04-12
+> Last updated: 2026-04-21
 
 ---
 
@@ -140,16 +140,19 @@ curl -X POST http://pgepilot_service/api/v2/tasks/run-pv-forecast-om
 
 ## OTE Day-Ahead Spot Import (added 2026-04-07)
 
-PgePilot now imports OTE day-ahead electricity prices in **15-minute** resolution through a dedicated service route and recurring task definitions.
+PgePilot imports OTE day-ahead electricity prices in **15-minute** resolution by scraping the public OTE-CR day-ahead page. Two recurring task definitions run the import; data lands in a single flat table.
 
 | Property | Value |
 |----------|-------|
+| Source URL | `https://www.ote-cr.cz/cs/kratkodobe-trhy/elektrina/denni-trh` (HTML scrape, no XML/API) |
 | Route | `GET /ote/import` |
 | Alias | `GET /oteTest` |
-| Default resolution | `PT15M` |
-| Storage table | `ote_day_ahead_prices` |
-| Import wrapper | `TaskController::runOteSpotImport()` |
-| Active tasks | `30` (today), `31` (today + tomorrow) |
+| Default resolution | `PT15M` (96 rows/day); `PT60M` supported via `time_resolution` param |
+| Source code | `pgepilot-service/src/Specific/System/Route_spec.php` (`oteRunImportSpec` line 284, `oteParseRowsSpec` line 198) |
+| Import wrapper | `TaskController::runOteSpotImport()` (line 3305) — delegates to local `/ote/import` |
+| Storage DB + table | **`pgepilot.ote_day_ahead_prices`** (legacy `pgepilot` schema, NOT `pgepilot_service` — that DB does not exist) |
+| Storage columns | `market_date`, `time_resolution`, `period_index`, `period_label`, `period_start`, `period_end`, `price_eur_mwh`, `quantity_mwh`, `hour_price_eur_mwh`, `source_url`, `downloaded_at` |
+| Active tasks | `30` (today, `daily:00:05`), `31` (today + tomorrow, `daily:12:10`) |
 
 ### Manual examples
 
@@ -164,7 +167,14 @@ curl 'http://pgepilot_service/ote/import?date=2026-04-07&time_resolution=PT15M'
 
 - Task `30` runs daily at `00:05` and refreshes today's published PT15M prices.
 - Task `31` runs daily at `12:10` and fetches today plus tomorrow.
-- If tomorrow's auction data has not been published yet, the importer marks that date as `skipped` instead of failing the whole job.
+- If tomorrow's auction data has not been published yet, the importer marks that date as `skipped` instead of failing the whole job (`allow_missing_future=true` by default).
+
+### Verified production status (2026-04-21)
+
+- Continuous coverage 2026-04-07 → 2026-04-21 (15 days × 96 PT15M rows = **1440 rows**, zero gaps).
+- Task `30` observed writing today's data at `00:05:17`; task `31` observed writing historical days between `12:10:05` and `12:10:33`.
+- No PT60M rows in production — only PT15M is actively used.
+- Check query: `SELECT market_date, COUNT(*) rows_per_day, MAX(downloaded_at) FROM pgepilot.ote_day_ahead_prices GROUP BY market_date ORDER BY market_date DESC LIMIT 10;`
 
 ---
 
