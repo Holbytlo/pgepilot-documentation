@@ -2,7 +2,7 @@
 
 > Canonical operational registry for SmartBox labels, aliases, customer/site names, expected inverter type, and current provisioning state.
 >
-> Last updated: 2026-04-27
+> Last updated: 2026-04-28
 
 ## Scope
 
@@ -43,8 +43,8 @@ base = 20000 + (n - 1) * 10
 | sb13 | 13 | `listanykd` | Listany KD | Listany | 2x SoLaX | RPi | Active reference for SoLaX class. |
 | sb14 | 14 | `kosticeou` | Kostice OU | Kostice OU | 1x GoodWe | RPi | Prepared for Kostice OU. |
 | sb15 | 15 | `zbrasinou` | Zbrasin OU | Zbrasin | 2x SoLaX | RPi | Active on LAN/VPS; SoLaX devices detected and configured. |
-| sb16 | 16 | `citolibyzs` | Citoliby ZS | Citoliby | 2x SoLaX | RPi | Registered in sb-manager; physical box seen on LAN, but tunnel/runtime not finished because SSH credentials are not accepted. |
-| sb17 | 17 | `citolibyhs` | Citoliby HS | Citoliby | 2x SoLaX | RPi | Registered in sb-manager; physical box seen on LAN, but tunnel/runtime not finished because SSH credentials are not accepted. |
+| sb16 | 16 | `citolibyzs` | Citoliby ZS | Citoliby | 2x SoLaX | RPi | Active on LAN/VPS; runtime, cloud identity, tunnel, and SoLaX placeholders configured. |
+| sb17 | 17 | `citolibyhs` | Citoliby HS | Citoliby | 2x SoLaX | RPi | Active on LAN/VPS; runtime, cloud identity, tunnel, and SoLaX placeholders configured. |
 
 ## Devices Outside This Wave
 
@@ -55,7 +55,7 @@ base = 20000 + (n - 1) * 10
 | sb8 | Development/reserve (`MICHAL vyvoj`). |
 | sb10 | Reserve/unassigned in the current wave. |
 
-## 2026-04-27 Verification Notes
+## 2026-04-28 Verification Notes
 
 `sb15`:
 
@@ -67,18 +67,22 @@ base = 20000 + (n - 1) * 10
 `sb16`:
 
 - `sb-manager` row: `n=16`, label `sb16`, alias `citolibyzs`, notes `Citoliby ZS`, status `ACTIVE`
-- observed on staging LAN as `pge-sb16` at `192.168.0.129`, MAC `88:a2:9e:54:6c:ce`
-- only SSH port answered; SmartBox runtime ports were not open
-- known candidate SSH credentials were rejected, so no safe device-side provisioning was possible without console/SD access
-- reverse tunnel base `20150` not active at last check
+- observed on staging LAN as `pge-sb16` at `192.168.0.125`, MAC `88:a2:9e:54:6c:8a`
+- reverse tunnel active on base `20150`
+- VPS SSH active on `20152`
+- nginx `/health` active on `20150`
+- `sb-ops-agent` health active on `20155`, `allUp=true`, 5/5 internal services
+- `devices_config.yaml` contains 2x disabled SoLaX Modbus TCP placeholders (`inverter`, `inverter2`) with Citoliby ZS machine IDs
 
 `sb17`:
 
 - `sb-manager` row: `n=17`, label `sb17`, alias `citolibyhs`, notes `Citoliby HS`, status `ACTIVE`
-- observed on staging LAN as `pge-sb17` at `192.168.0.125`, MAC `88:a2:9e:54:6c:8a`
-- only SSH port answered; SmartBox runtime ports were not open
-- known candidate SSH credentials were rejected, so no safe device-side provisioning was possible without console/SD access
-- reverse tunnel base `20160` not active at last check
+- observed on staging LAN as `pge-sb17` at `192.168.0.129`, MAC `88:a2:9e:54:6c:ce`
+- reverse tunnel active on base `20160`
+- VPS SSH active on `20162`
+- nginx `/health` active on `20160`
+- `sb-ops-agent` health active on `20165`, `allUp=true`, 5/5 internal services
+- `devices_config.yaml` contains 2x disabled SoLaX Modbus TCP placeholders (`inverter`, `inverter2`) with Citoliby HS machine IDs
 
 ## Operational Requirement For New Images
 
