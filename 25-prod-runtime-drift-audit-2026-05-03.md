@@ -154,6 +154,47 @@ remains unauthenticated. No production files were changed, no deploy was
 performed, and no services or containers were restarted during either preservation
 step.
 
+The third preservation step was completed for demo/service-demo `pgepilot-service`
+runtime trees:
+
+`pgepilot_service_demo`:
+
+- repo: `Holbytlo/pgepilot-service`
+- branch: `codex/reconcile-pgepilot-service-demo-prod-20260503`
+- commit: `a5f48c4`
+- base: server checkout base `1727f603`
+- scope: 40 dirty tracked files plus safe untracked runtime code files
+  (`app/pge_auth_bridge.php`, `app/user_preferences.php`, `infra/auth_srv/*`,
+  `scripts/bootstrap_runtime.php`, `scripts/demo_sb_lite.php`)
+- excluded: `app/runtime_secrets.local.php`, `app/runtime_secrets.php`, and other
+  credential/secret runtime files
+- validation: candidate hashes match live files, `git diff --check` passed,
+  secret-pattern classification found no direct quoted secrets, `php -l` passed
+  for changed PHP files inside the live container, and `composer validate
+  --no-check-publish` passed inside the live container
+- manual PR URL:
+  `https://github.com/Holbytlo/pgepilot-service/pull/new/codex/reconcile-pgepilot-service-demo-prod-20260503`
+
+`pgepilot_demo_simulator`:
+
+- repo: `Holbytlo/pgepilot-service`
+- branch: `codex/reconcile-pgepilot-demo-simulator-prod-20260503`
+- commit: `a9880ff`
+- base: server checkout base `1727f603`
+- scope: 40 dirty tracked files plus safe untracked runtime code files
+  (`infra/auth_srv/*`, `scripts/bootstrap_runtime.php`, `scripts/demo_sb_lite.php`)
+- excluded: `app/runtime_secrets.local.php`, `app/runtime_secrets.php`, and other
+  credential/secret runtime files
+- validation: candidate hashes match live files, `git diff --check` passed,
+  secret-pattern classification found no direct quoted secrets, `php -l` passed
+  for changed PHP files inside the live container, and `composer validate
+  --no-check-publish` passed inside the live container
+- manual PR URL:
+  `https://github.com/Holbytlo/pgepilot-service/pull/new/codex/reconcile-pgepilot-demo-simulator-prod-20260503`
+
+No production files were changed, no deploy was performed, and no services or
+containers were restarted during this preservation step.
+
 1. Preserve the `pgepilot_service` dirty prod diff into a clean local branch from
    `Holbytlo/pgepilot-service origin/main`, review it against current local WIP,
    then decide whether to PR it or revert/redeploy prod to GitHub main.
@@ -172,6 +213,9 @@ step.
 4. Decide whether `demo.pgepilot.cz` should intentionally stay on `server dev`
    `37.27.32.17` or move to a prod demo container. Current prod demo containers
    are not the public demo route.
+   Status: prod demo container runtime diffs are preserved as `a5f48c4`
+   (`pgepilot_service_demo`) and `a9880ff` (`pgepilot_demo_simulator`);
+   routing/product decision remains open.
 5. Clean or explicitly label stale NPM proxy entries (`web`, `taskmanager`,
    `simsb`, and older legacy hosts) after confirming they are not used.
 6. Keep `pgepilot_app_main:1f39444` as the canonical current public app until a
