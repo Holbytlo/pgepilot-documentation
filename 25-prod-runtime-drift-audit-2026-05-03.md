@@ -117,6 +117,43 @@ after push:
 
 `https://github.com/Holbytlo/pgepilot-service/pull/new/codex/reconcile-pgepilot-service-prod-20260503`
 
+The second preservation step was completed for `pgepilot_servicedesk` runtime
+source trees:
+
+`Holbytlo/pge-app`:
+
+- branch: `codex/reconcile-pge-app-servicedesk-prod-20260503`
+- commit: `8c147e3`
+- base: server checkout base `3d7e6bb`
+- scope: 5 dirty tracked files from
+  `pgepilot_servicedesk:/home/app2/pge-app`; untracked `dist.*` backup
+  artifacts were not copied
+- validation: candidate hashes match live files, `git diff --check` passed,
+  stricter secret-pattern scan produced no direct-secret findings, `npm ci`
+  passed, `npm run build` passed
+- manual PR URL:
+  `https://github.com/Holbytlo/pge-app/pull/new/codex/reconcile-pge-app-servicedesk-prod-20260503`
+
+`Holbytlo/servisdesk`:
+
+- branch: `codex/reconcile-servisdesk-prod-20260503`
+- commit: `6316c7d`
+- base: server checkout base `5630af4`
+- scope: 11 dirty tracked files plus 7 new auth/cloud-inventory code files from
+  `pgepilot_servicedesk:/home/app2/servicedesk`; `.env.bak-*` and `*.bak-*`
+  backup files were not copied
+- validation: candidate hashes match live files, `git diff --check` passed,
+  sensitive scan found only password variable reads in cloud-inventory code with
+  no direct password literals, `npm ci` passed in `server` and `web`,
+  `npm run build` passed in both `server` and `web`
+- manual PR URL:
+  `https://github.com/Holbytlo/servisdesk/pull/new/codex/reconcile-servisdesk-prod-20260503`
+
+The GitHub app still failed to initialize when opening draft PRs, and local `gh`
+remains unauthenticated. No production files were changed, no deploy was
+performed, and no services or containers were restarted during either preservation
+step.
+
 1. Preserve the `pgepilot_service` dirty prod diff into a clean local branch from
    `Holbytlo/pgepilot-service origin/main`, review it against current local WIP,
    then decide whether to PR it or revert/redeploy prod to GitHub main.
@@ -130,6 +167,8 @@ after push:
    `pgepilot_servicedesk:/home/app2/pge-app` as separate tasks. Exclude env and
    backup files, classify auth/cloud-inventory changes, and only then decide what
    belongs in GitHub.
+   Status: preservation branches are pushed as `8c147e3` (`pge-app`) and
+   `6316c7d` (`servisdesk`); review/merge decisions remain open.
 4. Decide whether `demo.pgepilot.cz` should intentionally stay on `server dev`
    `37.27.32.17` or move to a prod demo container. Current prod demo containers
    are not the public demo route.
