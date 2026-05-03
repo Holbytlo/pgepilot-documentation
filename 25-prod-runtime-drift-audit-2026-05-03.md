@@ -93,9 +93,36 @@ kept locally under:
 
 ## Recommended Next Steps
 
+### Follow-up Preservation
+
+The first recommended step was completed after this audit:
+
+- repo: `Holbytlo/pgepilot-service`
+- branch: `codex/reconcile-pgepilot-service-prod-20260503`
+- commit: `3478d6f`
+- scope: the two dirty tracked files from `pgepilot_service:/var/www/html`
+  were copied read-only into a fresh worktree from `origin/main@8a48706b`
+- production impact: none; no prod file write, deploy, or restart
+
+Validation for that preservation branch:
+
+- candidate file hashes match the live `server prod` files
+- `git diff --check`: pass
+- secret-pattern scan over the candidate diff: no findings
+- `php -l` inside the live `pgepilot_service` container for both files: pass
+
+Draft PR creation was attempted through the GitHub app, but the connector failed to
+initialize and local `gh` was not authenticated. GitHub returned this manual PR URL
+after push:
+
+`https://github.com/Holbytlo/pgepilot-service/pull/new/codex/reconcile-pgepilot-service-prod-20260503`
+
 1. Preserve the `pgepilot_service` dirty prod diff into a clean local branch from
    `Holbytlo/pgepilot-service origin/main`, review it against current local WIP,
    then decide whether to PR it or revert/redeploy prod to GitHub main.
+   Status: done as `3478d6f` on branch
+   `codex/reconcile-pgepilot-service-prod-20260503`; PR still needs to be opened
+   manually or once GitHub app/`gh` auth works.
 2. Do not deploy a whole local `pgepilot-service` file over prod until the
    `pgepilot_service` server-local diff is classified. The API container already
    has live changes that the workers do not have.
