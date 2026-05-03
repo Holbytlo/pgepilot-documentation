@@ -11,7 +11,7 @@ Technical documentation for the PGEPilot ecosystem -- a photovoltaic (PV) monito
 
 | Component | Description | Status |
 |-----------|-------------|--------|
-| **PgePilot Cloud** | Cloud monitoring, 23 active plants, 7 Docker containers | Production |
+| **PgePilot Cloud** | Cloud monitoring, active plant fleet, 14 running Docker containers including proxy/demo/legacy app surfaces | Production |
 | **SmartBox / SBC** | Edge Raspberry Pi, Modbus inverter control, reverse SSH | Production (monitoring), WIP (control) |
 | **PGE App** | Vue 3 web frontend at app.pgepilot.cz | Production |
 | **Mobile App** | React Native cross-platform client sharing API v2 with web | Implemented MVP, active development |

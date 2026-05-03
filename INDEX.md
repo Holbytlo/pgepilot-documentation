@@ -34,6 +34,7 @@
 | 22 | [22-auth-schema-apps.md](22-auth-schema-apps.md) | Graphical schema of current live auth across pge-app, sb-manager, and servisdesk, including login flow and authorization rules |
 | 23 | [23-smartbox-fleet-registry.md](23-smartbox-fleet-registry.md) | Canonical SmartBox fleet registry: labels, aliases, customer/site mapping, expected inverter class, and current provisioning blockers |
 | 24 | [24-workspace-git-kb-reconciliation-2026-05-03.md](24-workspace-git-kb-reconciliation-2026-05-03.md) | 2026-05-03 lokál/server/GitHub/KB reconciliation: server checks, dirty runtime branches, preserved sb-manager server-dev branch, remaining blockers |
+| 25 | [25-prod-runtime-drift-audit-2026-05-03.md](25-prod-runtime-drift-audit-2026-05-03.md) | 2026-05-03 production drift audit: Docker/NPM/services/runtime git state vs lokál and GitHub upstream |
 | -- | [AUDIT_PROCEDURE.md](AUDIT_PROCEDURE.md) | Step-by-step server audit commands for verifying docs against reality |
 
 ## How to Use
@@ -42,7 +43,7 @@
 - **Working on SmartBox?** Start with `23` (fleet registry), then `02`, `17` (new image checklist), `14` (provisioning), `06` (RPC section), `07` (entities).
 - **Installing a new SmartBox?** Read `17` first (operational checklist), then `14` (full provisioning guide).
 - **Working on the web app?** Start with `03`, then `06` (API).
-- **Need infrastructure details?** Read `05`.
+- **Need infrastructure details?** Read `05`; for current production drift read `25`.
 - **Need the big picture?** Read `08` (architecture), then `09` (roadmap).
 - **Continuing from another chat/window?** Read `16` first, then jump into the listed files and commands.
 - **Security audit?** Read `10`.

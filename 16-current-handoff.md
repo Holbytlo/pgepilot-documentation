@@ -41,7 +41,9 @@ Summary:
 
 - `lokál` is a multi-repository workspace, not one git repo.
 - Many nested repositories have local WIP changes. Do not reset or overwrite them.
-- `server prod` is `pgepilot.cz`; focused read-only check on 2026-05-03 showed runtime artifacts without exposed `.git` in inspected containers and public health/app/demo URLs at `HTTP 200`.
+- `server prod` is `pgepilot.cz`; the latest read-only drift audit is `25-prod-runtime-drift-audit-2026-05-03.md`.
+- Current prod correction: `pgepilot_service`, `pgepilot_service_demo`, `pgepilot_demo_simulator`, workers, jobmanager, and `pgepilot_servicedesk` do expose runtime git checkouts. `pgepilot_service` and both servicedesk source trees are dirty; workers and jobmanager are clean.
+- Public `pgepilot.cz` / `app.pgepilot.cz` route to `pgepilot_app_main:3060`, not to the older PGE App checkout inside `pgepilot_servicedesk`.
 - `server dev` has both `pgepilot-dev.cz` / `37.27.32.17` and the SmartBox/VPS surface on `ra-energity.cz`; verify the specific target for the task.
 - `ra-energity.cz:/opt/sb-manager` dirty runtime changes were preserved to GitHub branch `codex/reconcile-sb-manager-server-dev-20260503` (commit `f084846`), but not deployed or merged.
 - SB demo runtime checkouts under `/home/limited/pgepilot-sb*-demo/sb` remain dirty and need separate config/code/AppleDouble reconciliation.
@@ -65,7 +67,7 @@ Use these as routing hints, not proof of final state:
 | Auth and login | `22-auth-schema-apps.md`, `18-pgepilot-sluzby-prihlaseni.md`, `19-pgepilot-auth-migration-plan.md` |
 | Roadmap / prioritization | `09-development-roadmap.md` |
 | Security | `10-security.md` |
-| Workspace/server/Git/KB reconciliation | `24-workspace-git-kb-reconciliation-2026-05-03.md` |
+| Workspace/server/Git/KB reconciliation | `24-workspace-git-kb-reconciliation-2026-05-03.md`, then `25-prod-runtime-drift-audit-2026-05-03.md` for current prod drift |
 
 ## Archive Boundary
 

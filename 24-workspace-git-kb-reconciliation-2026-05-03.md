@@ -3,6 +3,11 @@
 > Read-only server checks and Git/KB reconciliation notes from PGP-052.
 > Last updated: 2026-05-03.
 
+> **Superseded prod detail:** A later focused `server prod` audit on 2026-05-03
+> found runtime git checkouts and dirty prod drift that this broader pass missed.
+> Read [25-prod-runtime-drift-audit-2026-05-03.md](25-prod-runtime-drift-audit-2026-05-03.md)
+> before making any prod deploy or cleanup decision.
+
 ## Scope
 
 This pass reconciled evidence across:
@@ -45,14 +50,16 @@ Checked on 2026-05-03:
   nginx proxy.
 - `https://api.pgepilot.cz/api/v2/health`, `https://app.pgepilot.cz/`,
   `https://demo.pgepilot.cz/`, and `https://pgepilot.cz/` returned `HTTP 200`.
-- The inspected runtime paths inside `pgepilot_service`, `pgepilot_service_demo`,
-  workers, `pgepilot_jobmanager`, and `pgepilot_servicedesk` did not expose `.git`
-  directories. Treat server prod as runtime artifacts, not editable git checkouts.
+- This broad pass did not find exposed `.git` directories in the first inspected
+  paths, but the focused follow-up in document `25` did. Current prod reality is:
+  `pgepilot_service` is a dirty checkout at `main@8a48706b`, workers are clean at
+  the same commit, `pgepilot_service_demo` and `pgepilot_demo_simulator` are dirty
+  older checkouts, and `pgepilot_servicedesk` contains dirty source trees.
 
-Implication: do not use old docs that describe prod service/workers as dirty git
-checkouts without a fresh check. Any prod change still requires the project deploy
-safety rule: compare `GitHub upstream` or known base, current `lokál` candidate, and
-current `server prod` runtime copy; create/identify a backup; inspect backup-to-candidate
+Implication: do not use this broad pass as proof that prod has no runtime git or
+no drift. Any prod change still requires the project deploy safety rule: compare
+`GitHub upstream` or known base, current `lokál` candidate, and current
+`server prod` runtime copy; create/identify a backup; inspect backup-to-candidate
 diff before replacing anything.
 
 ## Server Dev / VPS Read-Only Check
@@ -132,4 +139,3 @@ sanitized to remove a plaintext access value and linked from:
 - `projects/pgepilot/sites/README.md`
 
 The KB change should be committed and pushed with the Holbytlo Git key.
-

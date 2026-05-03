@@ -1,7 +1,7 @@
 # 05 -- Infrastructure
 
 > Servers, Docker, databases, networking, deploy procedures, and backups.
-> Last updated: 2026-05-03 (credential-path note only; verify runtime fresh before deploy decisions)
+> Last updated: 2026-05-03 (prod runtime drift audit)
 
 > **Credentials note**: All passwords and keys are `[REDACTED]`.
 > Actual values are in sensitive local access notes under `/Users/vladimiradam/projekty AI/pristupy a servery/`,
@@ -13,7 +13,7 @@
 
 | # | Server | IP | OS | Purpose | Provider |
 |---|--------|----|----|---------|----------|
-| 1 | pgepilot.cz | 88.99.187.9 | Ubuntu 22.04 ARM64 | PgePilot cloud (7 Docker containers) | Hetzner |
+| 1 | pgepilot.cz | 88.99.187.9 | Ubuntu 22.04 ARM64 | PgePilot cloud (14 running Docker containers incl. proxy, app images, demo, legacy surfaces) | Hetzner |
 | 2 | ra-energity.cz | 195.201.19.103 | Ubuntu 24.04 x86_64 | SmartBox VPS (sb-manager, SSH tunnels) | Hetzner |
 | 3 | pgeusers | 188.245.255.117 | -- | ERP applications (Pricelist, PMO, Auth, Admin, TaskHub) | Hetzner |
 | 4 | pgen-data-analyse | 94.130.78.0 | -- | EnerSim simulation engine | Hetzner |
@@ -28,11 +28,11 @@ Servers 3 and 4 are part of the PGE ERP ecosystem (separate documentation).
 |----------|-------|
 | RAM | 3.7 GB |
 | Root disk | 38 GB SSD (26 GB free) |
-| Data volume | /mnt/HC_Volume_101857288, 300 GB (205 GB free) |
+| Data volume | /mnt/HC_Volume_101857288, 300 GB (~132 GB used on 2026-05-03) |
 | SSH | `ssh root@pgepilot.cz` (ed25519 key) |
 | Firewall | iptables: SSH to containers whitelisted for specific IPs, fail2ban on port 22 |
 
-### Docker Containers (8 running, verified 2026-04-10)
+### Docker Containers (14 running, verified 2026-05-03)
 
 | Container | Ports (host) | SSH Port | Tech | Purpose |
 |-----------|-------------|----------|------|---------|
@@ -41,8 +41,14 @@ Servers 3 and 4 are part of the PGE ERP ecosystem (separate documentation).
 | pgepilot_worker2 | 6002 | 2262 | PHP 8.1 | Task execution (added) |
 | pgepilot_worker3 | 6003 | 2263 | PHP 8.1 | Task execution (added) |
 | pgepilot_jobmanager | 5000-5001 | 2205 | Node.js v20, PM2 | Job orchestrator + SB sim |
-| pgepilot_servicedesk | 3050, 3060 | 2206 | Vue3, Node.js | Frontend + PGE App |
+| pgepilot_servicedesk | 3050, 3060 | 2206 | Vue3, Node.js | ServiceDesk + legacy/side PGE App PM2 process |
 | pgepilot_auth_srv | 4000 | -- | Node.js, JWT | Authentication |
+| pgepilot_app_main | internal 3060 | -- | Node.js/Vue static server | Current public `pgepilot.cz` / `app.pgepilot.cz` app image |
+| pgepilot_app2 | internal 3060 | -- | Node.js/Vue static server | Legacy `app2.pgepilot.cz` app image |
+| pgepilot_app_prod | internal 3060 | -- | Node.js/Vue static server | Running standby/old app image; no public NPM route found |
+| pgepilot_demo_app | internal 3060 | -- | Node.js/Vue static server | Running prod demo app image; not the public `demo.pgepilot.cz` route |
+| pgepilot_service_demo | 8401 | -- | PHP 8.1, Slim4 | Demo/service API copy |
+| pgepilot_demo_simulator | internal | -- | PHP 8.1, Slim4 | Demo simulator copy |
 | nginx-proxy-manager | 80, 81, 443 | -- | nginx | Reverse proxy, SSL |
 
 > `pgepilot_beapp` (legacy) exists as image but is NOT running.
@@ -59,36 +65,54 @@ ssh root@pgepilot.cz "docker exec -it pgepilot_jobmanager sh"
 ssh root@pgepilot.cz "docker exec -it pgepilot_servicedesk sh"
 ```
 
-### Runtime Code State (verified 2026-04-12)
+### Runtime Code State (verified 2026-05-03)
 
 | Runtime path | Git state | Notes |
 |--------------|-----------|-------|
-| `pgepilot_service:/var/www/html` | clean `main@1727f60` | Service and workers are uniform again after the late-evening SmartBox UUID validation deploy |
-| `pgepilot_worker1:/var/www/html` | clean `main@1727f60` | Uniform with `pgepilot_service` as of 2026-04-12 late evening |
-| `pgepilot_worker2:/var/www/html` | clean `main@1727f60` | Uniform with `pgepilot_service` as of 2026-04-12 late evening |
-| `pgepilot_worker3:/var/www/html` | clean `main@1727f60` | Uniform with `pgepilot_service` as of 2026-04-12 late evening |
-| `pgepilot_jobmanager:/home/app` | clean `main@4346047` | Runtime cleanup removed untracked `jobmanager.js.bak` / `jobmanager.js.pre_cleanup`; tracked `jobmanager.jszaloha` remains in repo |
-| `pgepilot_servicedesk:/home/app2/pge-app` | clean `main@3d7e6bb` | Live frontend source tree now matches GitHub `main`; served bundle currently `/assets/index-lGjKNcFm.js` |
-| `pgepilot_servicedesk:/home/app2/servicedesk` | clean `main@1c21bd4` | Admin UI checkout is clean |
-| `pgepilot_auth_srv:/app` | no visible git checkout | Runtime is a deploy artifact, not a git-auditable repo |
+| `pgepilot_service:/var/www/html` | dirty `main@8a48706b` | Base equals `Holbytlo/pgepilot-service origin/main`, but `app/routes_pge_control.php` and `src/PgePilot/Api/TaskController.php` have live server-local changes |
+| `pgepilot_worker1:/var/www/html` | clean `main@8a48706b` | Matches `origin/main`; key file hashes differ from dirty `pgepilot_service` |
+| `pgepilot_worker2:/var/www/html` | clean `main@8a48706b` | Matches `origin/main`; key file hashes differ from dirty `pgepilot_service` |
+| `pgepilot_worker3:/var/www/html` | clean `main@8a48706b` | Matches `origin/main`; key file hashes differ from dirty `pgepilot_service` |
+| `pgepilot_service_demo:/var/www/html` | dirty `main@1727f603` | Behind `origin/main` by 4 commits with 40 tracked files changed; runtime/demo files present |
+| `pgepilot_demo_simulator:/var/www/html` | dirty `main@1727f603` | Behind `origin/main` by 4 commits with 40 tracked files changed |
+| `pgepilot_jobmanager:/home/app` | clean `main@4346047` | Matches `Holbytlo/pgepilot-js origin/main`; PM2 `jobmanager` online |
+| `pgepilot_servicedesk:/home/app2/pge-app` | dirty `main@3d7e6bb` | Behind `pge-app origin/main@1f39444` by 4 commits; no longer the public `app.pgepilot.cz` route |
+| `pgepilot_servicedesk:/home/app2/servicedesk` | dirty `main@5630af4` | Behind `servisdesk origin/main@d2ba76e` by 3 commits; server-local auth/cloud-inventory changes present |
+| `pgepilot_servicedesk:/var/www/html` | clean `main@ae7bdab` | Commit was not found in the local `servisdesk` repo during this audit; treat as unknown runtime provenance |
+| `pgepilot_auth_srv:/app` | no git checkout | File hashes for `auth.js`, `auth_srv.js`, and `package.json` match `pgepilot-service origin/main` under `infra/auth_srv/*` |
+| `pgepilot_app_main:/app` | image `pgepilot_app_main:1f39444` | Serves public bundle `/assets/index-GD72iBtP.js`; matches `pge-app origin/main@1f39444` |
+| `pgepilot_app2:/app` | legacy image/runtime | Serves public `app2.pgepilot.cz` bundle `/assets/index-h8Jisf86.js` |
+| `pgepilot_app_prod:/app` | image `pgepilot_app_prod:782b8cc` | Running old/standby app image; no public NPM route found |
+| `pgepilot_demo_app:/app` | image `pgepilot_demo_app:demo-prod-4a8c319` | Running demo app image, but public `demo.pgepilot.cz` routes to `server dev` |
+
+See [25-prod-runtime-drift-audit-2026-05-03.md](25-prod-runtime-drift-audit-2026-05-03.md)
+for the full lokál/server prod/GitHub upstream comparison.
 
 ### Nginx Proxy Manager -- Domain Routing
 
-| Domain | Port | Backend |
-|--------|------|---------|
-| api.pgepilot.cz | :8400 | pgepilot_service |
-| worker.pgepilot.cz | :6001 | pgepilot_worker1 |
-| jobmanager.pgepilot.cz | :5000 | pgepilot_jobmanager |
-| simsb.pgepilot.cz | :5001 | pgepilot_jobmanager (SB sim) |
-| sd.pgepilot.cz | :3050 | pgepilot_servicedesk |
-| app.pgepilot.cz | :3060 | PGE App (socat proxy) |
-| auth.pgepilot.cz | :4000 | pgepilot_auth_srv |
-| db.pgepilot.cz | :3306 | MariaDB -- **RISK: exposed to internet** |
-| pgepilot.cz | :8000 | beapp (legacy, ignore) |
+| Domain | Backend | Notes |
+|--------|---------|-------|
+| pgepilot.cz | `pgepilot_app_main:3060` | Current public app shell |
+| app.pgepilot.cz | `pgepilot_app_main:3060` | Current public app shell |
+| oldapp.pgepilot.cz | `pgepilot_app_main:3060` | Alias to current app shell |
+| app2.pgepilot.cz | `pgepilot_app2:3060` | Legacy app2 runtime |
+| api.pgepilot.cz | `pgepilot_service:80` | API backend |
+| service.pgepilot.cz | `pgepilot_service:80` | API alias |
+| worker.pgepilot.cz | `pgepilot_worker1:80` | Worker endpoint; root returns 403 |
+| worker2.pgepilot.cz | `pgepilot_worker2:80` | Worker endpoint; root returns 403 |
+| jobmanager.pgepilot.cz | `pgepilot_jobmanager:5000` | Root returns 404 |
+| sd.pgepilot.cz | `pgepilot_servicedesk:3050` | ServiceDesk |
+| servicedesk.pgepilot.cz | `pgepilot_servicedesk:3050` | ServiceDesk alias |
+| auth.pgepilot.cz | `pgepilot_auth_srv:4000` | Auth endpoint; root returns 401 |
+| demo.pgepilot.cz | `37.27.32.17:80` | `server dev` backed demo |
+| control.pgepilot.cz | `37.27.32.17:5000` | `server dev` backed control; returned 502 on 2026-05-03 |
+| web.pgepilot.cz | `pgepilot.cz:8000` | Dead legacy proxy; returned 502 |
+| taskmanager.pgepilot.cz | `pgepilot.cz:5500` | Dead legacy proxy; returned 502 |
 
 NPM Admin panel: `http://pgepilot.cz:81`
 
-**Dead proxy entries** (should be removed): sicak, calc, nab, taskmanager -- point to dead ports.
+**Dead/stale proxy entries** (verify before removing): `sicak`, `calc`, `nab`,
+`srv`, `web`, `taskmanager`, and `simsb` style legacy routes.
 
 ### Firewall (iptables)
 
@@ -204,7 +228,7 @@ git checkout -B main origin/main && git reset --hard origin/main && rm -f /tmp/g
 
 ### Worker Containers (git sync from host)
 
-Workers are currently clean on `main@a921042`. The practical limitation is credentialing: containers do not keep the GitHub SSH key permanently, so host-side sync temporarily injects the key, fetches, resets, then deletes the key again.
+Workers are currently clean on `main@8a48706b`. The practical limitation is credentialing: containers do not keep the GitHub SSH key permanently, so host-side sync temporarily injects the key, fetches, resets, then deletes the key again.
 
 ```bash
 # Clean sync worker1/2/3 from GitHub main
@@ -228,7 +252,10 @@ ssh root@pgepilot.cz "
 ### Servicedesk/PGE App (docker cp + nsenter build)
 
 `docker exec` with `sh` works on the current container. `nsenter` is optional, not required for a normal build.
-Current production checkout is clean `main@3d7e6bb` and serves `/assets/index-lGjKNcFm.js`.
+Current public production app traffic goes to `pgepilot_app_main:3060`, not to this
+`pgepilot_servicedesk:/home/app2/pge-app` checkout. The servicedesk-side PGE App
+checkout is dirty `main@3d7e6bb` and should be reconciled before any use as a
+source of truth.
 
 ```bash
 # 1. Copy file to container

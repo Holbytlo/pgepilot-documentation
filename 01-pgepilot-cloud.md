@@ -1,7 +1,7 @@
 # 01 -- PgePilot Cloud Platform
 
 > Cloud monitoring and control platform for photovoltaic installations.
-> Last updated: 2026-04-21
+> Last updated: 2026-05-03
 
 ---
 
@@ -15,7 +15,7 @@ PgePilot is a cloud-based monitoring platform that collects data from PV inverte
 | IP | 88.99.187.9 |
 | Provider | Hetzner (ARM64) |
 | Active plants | 35 collection points (17 GoodWe, 15 SolaX, 1 SmartBox); Task 29 collects 32 plants |
-| Docker containers | 8 (verified 2026-04-10) |
+| Docker containers | 14 running incl. proxy/app/demo/legacy surfaces (verified 2026-05-03) |
 | Databases | 8 (see [05-infrastructure.md](05-infrastructure.md)) |
 | Primary API | `/api/v2/*` on port 8400 |
 | Frontend | app.pgepilot.cz (Vue3, port 3060) |
@@ -31,8 +31,14 @@ PgePilot is a cloud-based monitoring platform that collects data from PV inverte
 | **pgepilot_worker2** | 6002 | 2262 | PHP 8.1 | Additional task worker | Active |
 | **pgepilot_worker3** | 6003 | 2263 | PHP 8.1 | Additional task worker | Active |
 | **pgepilot_jobmanager** | 5000-5001 | 2205 | Node.js v20, PM2 | Job orchestrator; current production recurring work is driven by DB-backed `task_definitions`, while the older `/scheduled_tasks` block stays commented on current `main` | Active |
-| **pgepilot_servicedesk** | 3050, 3060 | 2206 | Vue3, Node.js | Frontend: servicedesk (:3050) + PGE App (:3060) | Active |
+| **pgepilot_servicedesk** | 3050, 3060 | 2206 | Vue3, Node.js | ServiceDesk (:3050) plus older/side PGE App PM2 process (:3060) | Active |
 | **pgepilot_auth_srv** | 4000 | -- | Node.js, JWT | Legacy SmartBox / verify-token auth for non-migrated clients | Active |
+| **pgepilot_app_main** | 3060 internal | -- | Node.js/Vue static server | Current public `pgepilot.cz` / `app.pgepilot.cz` app image (`1f39444`) | Active |
+| **pgepilot_app2** | 3060 internal | -- | Node.js/Vue static server | Legacy `app2.pgepilot.cz` app image | Active |
+| **pgepilot_app_prod** | 3060 internal | -- | Node.js/Vue static server | Running old/standby app image; no public NPM route found | Active |
+| **pgepilot_demo_app** | 3060 internal | -- | Node.js/Vue static server | Running prod demo image; public `demo.pgepilot.cz` currently routes to server dev | Active |
+| **pgepilot_service_demo** | 8401 | -- | PHP 8.1, Slim4 | Demo/service API copy | Active |
+| **pgepilot_demo_simulator** | internal | -- | PHP 8.1, Slim4 | Demo simulator copy | Active |
 | **nginx-proxy-manager** | 80, 443, 81 | -- | nginx | Reverse proxy, SSL, Let's Encrypt | Active |
 
 > **Note**: `pgepilot_beapp` (legacy PHP backend) is NOT running. It exists as a Docker image but is not started.
@@ -262,11 +268,11 @@ New plant `VA_SB` (ID 202) registered as a SmartBox pull connector:
 
 | Repo | Container | Branch | Contents |
 |------|-----------|--------|----------|
-| Holbytlo/pgepilot-service | `pgepilot_service` and workers 1/2/3 are now uniformly on `main@a921042` | main | PHP Slim4 API, TaskManager, DB migrations |
-| Holbytlo/pgepilot-js | `pgepilot_jobmanager` in `/home/app`, clean `main@4346047`; recurring work is DB-backed via `task_definitions` | main | Node.js job orchestrator |
-| Holbytlo/pgepilot-srv | `pgepilot_auth_srv` runtime is `/app` deploy artifact; no git metadata visible in container | main | Auth server (JWT, login) |
-| Holbytlo/pge-app | `pgepilot_servicedesk:/home/app2/pge-app`, clean `main@3d7e6bb`; live bundle currently serves `/assets/index-lGjKNcFm.js` | main | Vue3 frontend |
-| Holbytlo/servisdesk | `pgepilot_servicedesk:/home/app2/servicedesk`, clean `main@1c21bd4` | main | Admin UI |
+| Holbytlo/pgepilot-service | `pgepilot_service` dirty at `main@8a48706b`; workers 1/2/3 clean at the same commit; service-demo/demo-simulator dirty at old `main@1727f603` | main | PHP Slim4 API, TaskManager, DB migrations |
+| Holbytlo/pgepilot-js | `pgepilot_jobmanager` in `/home/app`, clean `main@4346047`; PM2 `jobmanager` online | main | Node.js job orchestrator |
+| Holbytlo/pgepilot-service `infra/auth_srv` | `pgepilot_auth_srv:/app` deploy artifact; safe file hashes match `origin/main` auth runtime files | main | Legacy SmartBox/JWT auth server |
+| Holbytlo/pge-app | Public app is `pgepilot_app_main:1f39444`; `pgepilot_servicedesk:/home/app2/pge-app` is a separate dirty checkout at `main@3d7e6bb` | main plus WIP/demo branches | Vue3 frontend |
+| Holbytlo/servisdesk | `pgepilot_servicedesk:/home/app2/servicedesk`, dirty `main@5630af4`, behind `origin/main@d2ba76e` | main | Admin UI |
 | Holbytlo/sb | SB1/SB4/SB7 are now treated as rsync-deployed runtimes; audited key file hashes match local `devva@45a2fc0` | devva | Python SmartBox software |
 | Holbytlo/sb-manager | VPS: `/opt/sb-manager`, clean `main@ef3261b`, PM2 online; historical restart counter is 168 as of 2026-04-12 evening | main | Node.js SB device management |
 | Holbytlo/sb-router | VPS: `/opt/sb-router`, clean `main@4c4a7ad`, systemd active since 2026-03-12 | main | Host-based router for SB tunnel subdomains |
@@ -278,7 +284,10 @@ New plant `VA_SB` (ID 202) registered as a SmartBox pull connector:
 - ~~GoodweSems OpenAPI token refresh broken~~ **FIXED** (2026-04-04) -- In-memory token cache + auto-retry on 100002 (commit `248351d`). All 32 plants now collected.
 - GoodweSemsWeb credentials updated: old account [REDACTED] was deactivated (code 100029), new account [REDACTED] is working for both CrossLogin (web) and OpenAPI (GetToken)
 - Legacy notes around `/scheduled_tasks` still appear in older docs; current production scheduling is DB-backed through `task_definitions`
-- Workers were resynchronized with GitHub `main` on 2026-04-10, but future git-based redeploys still require temporary host-side SSH key injection because the containers do not keep GitHub credentials permanently
+- `pgepilot_service` and workers are not currently uniform: service has a live server-local diff, workers are clean at `main@8a48706b`
+- Public `pgepilot.cz` / `app.pgepilot.cz` routes to `pgepilot_app_main:3060`, not to `pgepilot_servicedesk:/home/app2/pge-app`
+- `demo.pgepilot.cz` routes to `server dev` `37.27.32.17:80`; the prod `pgepilot_demo_app` container is not the public demo target
+- Workers are clean on GitHub `main`, but future git-based redeploys still require temporary host-side SSH key injection because the containers do not keep GitHub credentials permanently
 - Older docs say servicedesk `docker exec` fails; current reality is that `docker exec pgepilot_servicedesk sh -lc '...'` works
 - Tailwind CSS loaded from CDN in PGE App (should be npm installed)
 - `sb-manager` remains a stability concern: PM2 historical restart counter is now 168
