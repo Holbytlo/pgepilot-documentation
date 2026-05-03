@@ -2,7 +2,7 @@
 
 > **For AI/LLM agents.** Read this file first. Each entry has a one-line description so you know exactly what to read next.
 >
-> Last updated: 2026-04-27
+> Last updated: 2026-05-03
 
 ---
 
@@ -26,7 +26,7 @@
 | 13 | [13-connector-cache.md](13-connector-cache.md) | Connector self-governance: cache strategy, budget/rate limits, enable flags, ConnectorBudgetTrait |
 | 14 | [14-smartbox-provisioning.md](14-smartbox-provisioning.md) | Kompletni provisioning noveho SB: flash, bootstrap, konfigurace, overeni, checklist |
 | 17 | [17-smartbox-new-image-checklist.md](17-smartbox-new-image-checklist.md) | Prakticky checklist pro novy MP135/RPi image: build, flash, sit, bootstrap, connector, validation |
-| 16 | [16-current-handoff.md](16-current-handoff.md) | Short current handoff and active context routing; old long handoff is archived |
+| 16 | [16-current-handoff.md](16-current-handoff.md) | Short current handoff and active context routing; points to latest Planicka/SB6 GoodWe parallel charging KB |
 | 18 | [18-pgepilot-sluzby-prihlaseni.md](18-pgepilot-sluzby-prihlaseni.md) | Shared operator login across pge-auth, sb-manager, and servicedesk: redirect flow, tokens, RBAC, and risks |
 | 19 | [19-pgepilot-auth-migration-plan.md](19-pgepilot-auth-migration-plan.md) | Approved target architecture for PgePilot-owned auth, secure session model, and migration plan for pge-app, sb-manager, and servicedesk |
 | 20 | [20-pgeusers-small-apps-handoff.md](20-pgeusers-small-apps-handoff.md) | Recommended target model for small apps on pgeusers: admin hub, per-app routing, auth separation, and raw-port retirement |
