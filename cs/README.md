@@ -55,8 +55,8 @@ cs/16-current-handoff.md         <-- Kratky handoff pro dalsi chat/okno
 ## Pristupy a hesla
 
 Vsechna hesla v dokumentaci jsou oznacena `[REDACTED]`. Skutecne hodnoty jsou v:
-- `zadani/pristupy a servery/PGEERP_Knowledge_Base.md` (privatni OneDrive)
-- `zadani/pristupy a servery/pgepilot_server.md` (privatni OneDrive)
+- `/Users/vladimiradam/projekty AI/pristupy a servery/PGEERP_Knowledge_Base.md`
+- `/Users/vladimiradam/projekty AI/pristupy a servery/pgepilot_server.md`
 
 ---
 
@@ -89,6 +89,6 @@ Vsechna hesla v dokumentaci jsou oznacena `[REDACTED]`. Skutecne hodnoty jsou v:
 
 1. **Anglicke docs v korenu jsou zdrojem pravdy.** Jsou psane AI-first (strukturovane, explicitni).
 2. **Ceske docs v `cs/` jsou odvozene.** Po kazde zmene v korenu aktualizujte CZ verzi.
-3. **Nikdy necommitujte credentials.** Pouzivejte `[REDACTED]` a odkazujte na privatni OneDrive.
+3. **Nikdy necommitujte credentials.** Pouzivejte `[REDACTED]` a odkazujte na citlive lokalni pristupove poznamky pod `/Users/vladimiradam/projekty AI/pristupy a servery/`.
 4. **Udrzujte INDEX.md aktualni** pri pridani/odebrani souboru.
 5. **Datujte kazdou aktualizaci** v hlavicce dokumentu (format: YYYY-MM-DD).

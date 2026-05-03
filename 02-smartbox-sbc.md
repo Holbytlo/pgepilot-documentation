@@ -475,7 +475,7 @@ defaults -> TOU schedule -> dateTime overrides -> direct runtime command
 | https://doma2.ra-energity.cz | (alias for SB1) | -- |
 | https://sb-manazer.ra-energity.cz | (no auth) | sb-manager |
 
-> Credentials are stored in `zadani/pristupy a servery/pgepilot_server.md` (private OneDrive).
+> Credentials are stored in `/Users/vladimiradam/projekty AI/pristupy a servery/pgepilot_server.md` (sensitive local access notes).
 > Passwords are currently hardcoded in `app.py` -- plan is to move to `/etc/energity/credentials.yaml`.
 
 ---

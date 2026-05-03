@@ -33,6 +33,7 @@
 | 21 | [21-smallapp-manager-phase1.md](21-smallapp-manager-phase1.md) | Phase-1 execution spec for the standalone smallapp-manager service, including scope, routes, security baseline, and rollout acceptance criteria |
 | 22 | [22-auth-schema-apps.md](22-auth-schema-apps.md) | Graphical schema of current live auth across pge-app, sb-manager, and servisdesk, including login flow and authorization rules |
 | 23 | [23-smartbox-fleet-registry.md](23-smartbox-fleet-registry.md) | Canonical SmartBox fleet registry: labels, aliases, customer/site mapping, expected inverter class, and current provisioning blockers |
+| 24 | [24-workspace-git-kb-reconciliation-2026-05-03.md](24-workspace-git-kb-reconciliation-2026-05-03.md) | 2026-05-03 lokál/server/GitHub/KB reconciliation: server checks, dirty runtime branches, preserved sb-manager server-dev branch, remaining blockers |
 | -- | [AUDIT_PROCEDURE.md](AUDIT_PROCEDURE.md) | Step-by-step server audit commands for verifying docs against reality |
 
 ## How to Use
@@ -49,13 +50,20 @@
 
 ## Archive Boundary
 
-Old handoffs, one-off plans, MP135 runbooks, and handoff packages are in
-`../.archive/2026-04-24_docs_cleanup/`. They are cold storage. Do not read
-them by default; use the active docs above unless a task explicitly asks for
-historical recovery.
+Old handoffs, one-off plans, MP135 runbooks, handoff packages, broken demo
+worktree pointers, and runtime snapshots are in `../.archive/`. They are cold
+storage. Do not read them by default; use the active docs above unless a task
+explicitly asks for a named historical artifact.
+
+Known cold archive groups:
+
+- `../.archive/2026-04-24_docs_cleanup/`
+- `../.archive/2026-04-25_demo_git_cleanup/`
+- `../.archive/2026-04-25_local_cleanup/`
+- `../.archive/2026-04-25_runtime_snapshots/`
 
 ## Credential Policy
 
 All credentials are `[REDACTED]`. Actual values are in:
-- `zadani/pristupy a servery/PGEERP_Knowledge_Base.md` (private OneDrive)
-- `zadani/pristupy a servery/pgepilot_server.md` (private OneDrive)
+- `/Users/vladimiradam/projekty AI/pristupy a servery/PGEERP_Knowledge_Base.md`
+- `/Users/vladimiradam/projekty AI/pristupy a servery/pgepilot_server.md`

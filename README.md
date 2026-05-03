@@ -45,7 +45,7 @@ assets/                      <-- Wireframes, PDFs, diagrams
 
 1. **English docs in root are the source of truth.** They are written AI-first (structured, explicit, self-contained).
 2. **Czech docs in `cs/` are derived.** After any change to root docs, update the corresponding Czech file.
-3. **Never commit credentials.** Use `[REDACTED]` placeholders and reference the private OneDrive folder: `zadani/pristupy a servery/PGEERP_Knowledge_Base.md`.
+3. **Never commit credentials.** Use `[REDACTED]` placeholders and reference the sensitive local access notes under `/Users/vladimiradam/projekty AI/pristupy a servery/`.
 4. **Keep INDEX.md up to date** whenever a file is added, removed, or significantly changed.
 5. **Date every update** in the header of each document (format: YYYY-MM-DD).
 6. **Keep historical handoffs out of the active read path.** Archive old
@@ -57,8 +57,8 @@ assets/                      <-- Wireframes, PDFs, diagrams
 All passwords, API keys, SSH keys, and tokens are **intentionally excluded** from this repository. They are stored in:
 
 ```
-OneDrive: zadani/pristupy a servery/PGEERP_Knowledge_Base.md
-OneDrive: zadani/pristupy a servery/pgepilot_server.md
+/Users/vladimiradam/projekty AI/pristupy a servery/PGEERP_Knowledge_Base.md
+/Users/vladimiradam/projekty AI/pristupy a servery/pgepilot_server.md
 ```
 
 Where you see `[REDACTED]` in a document, look up the actual value in those private files.

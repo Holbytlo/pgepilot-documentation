@@ -1,10 +1,11 @@
 # 05 -- Infrastructure
 
 > Servers, Docker, databases, networking, deploy procedures, and backups.
-> Last updated: 2026-04-12
+> Last updated: 2026-05-03 (credential-path note only; verify runtime fresh before deploy decisions)
 
 > **Credentials note**: All passwords and keys are `[REDACTED]`.
-> Actual values: `zadani/pristupy a servery/PGEERP_Knowledge_Base.md` (private OneDrive).
+> Actual values are in sensitive local access notes under `/Users/vladimiradam/projekty AI/pristupy a servery/`,
+> especially `pgepilot_server.md` and cross-project infrastructure notes.
 
 ---
 
@@ -389,4 +390,4 @@ Production verification on 2026-04-07 confirmed:
 | forecast.solar | forecast.solar/api | API key | Professional tier |
 | Open-Meteo | api.open-meteo.com | None (free) | -- |
 
-Credentials: `[REDACTED]` -- see private OneDrive files.
+Credentials: `[REDACTED]` -- see `/Users/vladimiradam/projekty AI/pristupy a servery/` sensitive local access notes.

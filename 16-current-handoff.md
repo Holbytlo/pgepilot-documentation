@@ -41,9 +41,18 @@ Summary:
 
 - `lokál` is a multi-repository workspace, not one git repo.
 - Many nested repositories have local WIP changes. Do not reset or overwrite them.
-- `server prod` is `pgepilot.cz`; read-only check on 2026-04-24 showed production Docker containers online.
-- `server dev` is `ra-energity.cz`; read-only check on 2026-04-24 showed `sb-manager` and demo/simulator PM2 processes online.
+- `server prod` is `pgepilot.cz`; focused read-only check on 2026-05-03 showed runtime artifacts without exposed `.git` in inspected containers and public health/app/demo URLs at `HTTP 200`.
+- `server dev` has both `pgepilot-dev.cz` / `37.27.32.17` and the SmartBox/VPS surface on `ra-energity.cz`; verify the specific target for the task.
+- `ra-energity.cz:/opt/sb-manager` dirty runtime changes were preserved to GitHub branch `codex/reconcile-sb-manager-server-dev-20260503` (commit `f084846`), but not deployed or merged.
+- SB demo runtime checkouts under `/home/limited/pgepilot-sb*-demo/sb` remain dirty and need separate config/code/AppleDouble reconciliation.
 - `GitHub upstream` is Holbytlo. Some repos need the Holbytlo SSH key; default SSH may fail.
+
+## Current TaskAI Routing Hints
+
+- PGP-051 is the live SB1/SB6 runtime merge and GoodWe protection strategy task.
+- PGP-046 through PGP-050 cover PGE App safety/app-mode work and are pending Vladimir verification.
+- PGP-038 through PGP-044 cover Forecast v2 model/calibration/API/UI work and remain in progress.
+- PGP-001 and PGP-003 are pending verification; PGP-002 remains blocked until PGP-001 and the GoodWe parallel strategy are settled.
 
 ## Current Open Topics
 
@@ -56,9 +65,12 @@ Use these as routing hints, not proof of final state:
 | Auth and login | `22-auth-schema-apps.md`, `18-pgepilot-sluzby-prihlaseni.md`, `19-pgepilot-auth-migration-plan.md` |
 | Roadmap / prioritization | `09-development-roadmap.md` |
 | Security | `10-security.md` |
+| Workspace/server/Git/KB reconciliation | `24-workspace-git-kb-reconciliation-2026-05-03.md` |
 
 ## Archive Boundary
 
-Old handoffs, one-off plans, Superpowers docs, MP135 runbooks, and handoff ZIP manifests were moved to `.archive/2026-04-24_docs_cleanup/`.
+Old handoffs, one-off plans, Superpowers docs, MP135 runbooks, handoff ZIP manifests,
+broken demo worktree pointers, local cleanup artifacts, and broad runtime snapshots
+were moved to `.archive/` cold storage.
 
 AI agents should not inspect `.archive/` unless the user explicitly asks for a named historical artifact. The active docs above are the intended context path.
