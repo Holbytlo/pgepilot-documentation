@@ -150,7 +150,7 @@ systemctl status nginx --no-pager           # nginx
 ss -tlnp | grep -E '200[0-9][0-9]'
 # Port schema: base = 20000 + (N-1)*10
 # SB1: 20000-20009, SB2: 20010-20019, etc.
-# Offsets: +0=nginx, +2=ssh, +3=config, +4=api, +5=ops, +9=health
+# Offsets: +0=nginx + public /health, +2=ssh, +3=config, +4=api, +5=ops, +9=legacy only
 ```
 
 ### Firewall + SSL
@@ -214,8 +214,8 @@ curl -s http://127.0.0.1:5010/status 2>/dev/null || echo "DC not responding"
 # Sensor DB
 curl -s http://127.0.0.1:5011/api/sensor-data/latest 2>/dev/null | head -5
 
-# Health aggregator
-curl -s http://127.0.0.1:3007/health 2>/dev/null
+# Public web health surface
+curl -s http://127.0.0.1/health 2>/dev/null
 
 # RPC client
 curl -s http://127.0.0.1:3001/status 2>/dev/null || echo "RPC not responding"

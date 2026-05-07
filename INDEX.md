@@ -2,7 +2,7 @@
 
 > **For AI/LLM agents.** Read this file first. Each entry has a one-line description so you know exactly what to read next.
 >
-> Last updated: 2026-04-12
+> Last updated: 2026-04-14
 
 ---
 
@@ -25,14 +25,15 @@
 | 12 | [12-forecasting.md](12-forecasting.md) | PV forecast, load forecast, weather, adaptive correction, planned Open-Meteo physical model |
 | 13 | [13-connector-cache.md](13-connector-cache.md) | Connector self-governance: cache strategy, budget/rate limits, enable flags, ConnectorBudgetTrait |
 | 14 | [14-smartbox-provisioning.md](14-smartbox-provisioning.md) | Kompletni provisioning noveho SB: flash, bootstrap, konfigurace, overeni, checklist |
+| 17 | [17-smartbox-new-image-checklist.md](17-smartbox-new-image-checklist.md) | Prakticky checklist pro novy MP135/RPi image: build, flash, sit, bootstrap, connector, validation |
 | 16 | [16-current-handoff.md](16-current-handoff.md) | Live handoff: current runtime SHAs, open failures, where to look next, and exact production checks |
 | -- | [AUDIT_PROCEDURE.md](AUDIT_PROCEDURE.md) | Step-by-step server audit commands for verifying docs against reality |
 
 ## How to Use
 
 - **Working on PgePilot cloud?** Start with `01`, then `06` (API), `07` (entities).
-- **Working on SmartBox?** Start with `02`, then `14` (provisioning), `06` (RPC section), `07` (entities).
-- **Installing a new SmartBox?** Read `14` (provisioning guide) — step by step from zero to production.
+- **Working on SmartBox?** Start with `02`, then `17` (new image checklist), `14` (provisioning), `06` (RPC section), `07` (entities).
+- **Installing a new SmartBox?** Read `17` first (operational checklist), then `14` (full provisioning guide).
 - **Working on the web app?** Start with `03`, then `06` (API).
 - **Need infrastructure details?** Read `05`.
 - **Need the big picture?** Read `08` (architecture), then `09` (roadmap).

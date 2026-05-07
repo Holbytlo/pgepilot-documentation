@@ -1,7 +1,7 @@
 # 14 -- SmartBox Provisioning (kompletni postup)
 
 > Kompletni navod na instalaci noveho SmartBox zarizeni od nuly az po produkci.
-> Posledni aktualizace: 2026-04-12
+> Posledni aktualizace: 2026-04-14
 
 ---
 
@@ -53,7 +53,8 @@ Na sb-manazer.ra-energity.cz:
 
 ## Faze 2: Flash SD karty
 
-Viz podrobny postup: `mp135/debian-flash-runbook.md`
+Kanonicky operativni checklist je ted v `17-smartbox-new-image-checklist.md`.
+Historicky MP135-only runbook v `mp135/debian-flash-runbook.md` ber jen jako pomocny lokalni artifact, ne jako hlavni source of truth.
 
 ### Strucne:
 1. Extrahovat `.7z` image (M5Stack Debian 12 pro CoreMP135, nebo standardni RPi OS pro Raspberry Pi)
@@ -79,17 +80,14 @@ Viz podrobny postup: `mp135/debian-flash-runbook.md`
    ```
 3. **Pripojit WiFi** (pokud neni Ethernet):
    ```bash
-   # M5Stack CoreMP135 — nacist WiFi driver:
-   modprobe rt2800usb
-   # pokud se nepripoji automaticky:
-   echo "148f 5370" > /sys/bus/usb/drivers/rt2800usb/new_id
-   
    # Pripojit:
    nmcli device wifi connect "SSID" password "heslo"
-   
+
    # Overit:
    ping -c 2 ra-energity.cz
    ```
+   Poznamka:
+   Na current MP135 image nepredpokladej, ze libovolny USB Wi-Fi dongle bude fungovat. Napr. `RT5370` (`148f:5370`) na aktualnim kernelu nevytvori `wlan0`, protoze kernel nema zapnute `CONFIG_RT2800USB_RT53XX`. Viz `17-smartbox-new-image-checklist.md`.
 4. **Nastavit hostname** (volitelne):
    ```bash
    hostnamectl set-hostname sb7
@@ -221,7 +219,7 @@ Pravidlo:
 - touch pres `evdev`
 - neni potreba extra konfigurace v aplikaci
 
-**Raspberry Pi + 3.5" TFT HAT (`sb13` class)**
+**Raspberry Pi 3 + 3.5" TFT HAT (`sb13` / Listany KD class)**
 
 - ILI9486, `480x320`
 - framebuffer muze byt `/dev/fb0` nebo `/dev/fb1` podle rotace
@@ -297,6 +295,39 @@ devices:
   polling_interval: 5
   enabled: true
 ```
+
+**GoodWe autodetekce v siti (kanonicky commissioning default pro nove boxy):**
+```yaml
+devices:
+- name: inverter
+  pretty_name: GoodWe ET+
+  device_type: Inverter
+  machine_id: <UNIKATNI_UUID>
+  driver_type: modbus
+  device_driver: GoodWeInverterDriver
+  communication_driver: ModbusTCPDriver
+  registers_config: drivers/devices/inverter_modbus_registers/modbus_reg_goodwe.yaml
+  connection:
+    mode: dhcp
+    port: 502
+    unit_id: 247
+    discovery_cache_ttl: 300
+  polling_interval: 5
+  enabled: true
+```
+
+Pravidla pro GoodWe autodetekci:
+- funguje jen pro `GoodWeInverterDriver`
+- kdyz je `mode: dhcp` a **neni** zadana `mac_address`, SmartBox aktivne skenuje lokalni subnet a zkousi GoodWe Modbus registry
+- pokud najde presne jeden kandidat, pouzije ho
+- pokud najde vic kandidatu, failne zamerne jako `ambiguous`; v tom pripade je potreba konfiguraci zpresnit na `static host` nebo `dhcp + mac_address`
+- `dhcp + mac_address` zustava podporovany a je vhodny tam, kde se IP meni, ale zarizeni musi byt jednoznacne svazane s jednim kusem HW
+
+**Kanonicky workflow v `sb-manageru`:**
+- device detail ma mit nastavovani **primarniho konektoru** (typ, `enabled`, `pretty_name`, `machine_id`, connection mode)
+- pro GoodWe musi byt v `sb-manageru` dostupne tlacitko `Detekovat v siti`
+- `sb-manager` zapisuje box-side `devices_config.yaml` pres SB `config-api` a po ulozeni restartuje `energity-device-controller`
+- build scripts pro nove SD image maji pro `GoodWe` generovat vychozi `dhcp`/auto-scan konfiguraci, ne placeholder statickou IP
 
 **Deye stridac (Modbus TCP primo):**
 ```yaml

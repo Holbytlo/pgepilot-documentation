@@ -54,7 +54,7 @@ Internet -> ra-energity.cz:443 -> nginx
   +-- sb1.ra-energity.cz         -> sb-router:9100 -> tunnel :20000 -> SB1:80
   +-- doma2.ra-energity.cz       -> sb-router:9100 (alias) -> :20000
   +-- sb1-ops.ra-energity.cz     -> sb-router:9100 -> tunnel :20005 -> SB1:3002
-  +-- sb1-health.ra-energity.cz  -> sb-router:9100 -> tunnel :20009 -> SB1:3007
+  +-- sb1-health.ra-energity.cz  -> sb-router:9100 -> tunnel :20000 -> SB1:80/health
 ```
 
 Config files: `/etc/sb-router/config.json`, `/etc/nginx/conf.d/01-sb-router-host-map.conf`
@@ -151,10 +151,9 @@ SB1 (192.168.0.51)                 VPS (195.201.19.103)
   VPS :20003  <->  SB1 :3000   config-api
   VPS :20004  <->  SB1 :3001   rpc-client
   VPS :20005  <->  SB1 :3002   sb-ops-agent
-  VPS :20009  <->  SB1 :3007   health aggregator
 ```
 
-**Port schema for multiple SBs**: `base = 20000 + (N-1) * 10`, offsets: +0=nginx, +2=ssh, +3=config, +4=api, +5=ops, +9=health
+**Port schema for multiple SBs**: `base = 20000 + (N-1) * 10`, offsets: +0=nginx + public `/health`, +2=ssh, +3=config, +4=api, +5=ops, `+9` reserved for legacy installs only
 
 Verified active SSH ports on VPS in this session:
 - SB1: `20002`
@@ -244,6 +243,29 @@ sb4 and sb1 share the same LAN and the same GoodWe inverter (192.168.0.70). **On
 
 **Rule:** On sb4 `devices_config.yaml`, main inverter is `enabled: false`. Only enable for testing when sb1 DC is stopped first.
 
+### GoodWe discovery modes (current standard)
+
+GoodWe now has three supported connection patterns on SmartBox:
+
+1. `static`
+   - use when site IP is fixed and known
+   - safest for sites with multiple GoodWe units on one LAN
+
+2. `dhcp + mac_address`
+   - use when inverter IP can change but HW binding must stay exact
+   - SmartBox resolves the current IP from ARP on the SmartBox subnet plus optional fallback subnets
+
+3. `dhcp` without `mac_address` on `GoodWeInverterDriver`
+   - commissioning-friendly active scan mode
+   - SmartBox probes the local subnet for GoodWe-compatible Modbus endpoints
+   - if exactly one candidate is found, it is used automatically
+   - if more than one candidate is found, SmartBox fails intentionally as ambiguous; technician must switch to `static` or `dhcp + mac_address`
+
+Operational rule:
+- for new GoodWe images, default seed config should start in mode `dhcp` without `mac_address`
+- for customer sites with more than one GoodWe on the same LAN, auto-scan is not enough; final commissioning must pin the box to one inverter via static IP or MAC binding
+- `sb-manager` is the canonical place to edit the primary inverter connector on a live box and trigger GoodWe detection through the SB `config-api`
+
 ### Deye driver (merged 2026-04-11, commit 5322f3f)
 
 `origin/devva` contains DeyeInverterDriver, but live SB1 does not have this commit yet. sb4 was used for the smoke test and SB1 can receive the same additive deploy later. Files added:
@@ -275,7 +297,7 @@ SmartBox LCD dashboard must use the display hardware that is physically present 
 | Platform | Display | Framebuffer | Touch | Provisioning note |
 |----------|---------|-------------|-------|-------------------|
 | M5Stack CoreMP135 (`sb4`, `sb7`) | Built-in ILI9342C, 320x240 | `/dev/fb1` | `evdev` swipe, usually `/dev/input/event0` | No extra display config; driver is loaded by the board image |
-| Raspberry Pi + 3.5" TFT HAT (`sb13` class) | ILI9486, 480x320 | `/dev/fb0` or `/dev/fb1` | Primary: SPI polling on `spidev0.1`; fallback: `evdev` | Requires `tft35a` overlay and display dependencies during provisioning |
+| Raspberry Pi 3 + 3.5" TFT HAT (`sb13` / Listany KD class) | ILI9486, 480x320 | `/dev/fb0` or `/dev/fb1` | Primary: SPI polling on `spidev0.1`; fallback: `evdev` | Requires `tft35a` overlay and display dependencies during provisioning |
 
 ### UI conventions
 

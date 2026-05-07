@@ -2,7 +2,10 @@
 
 > Problemy zjistene pri rucnim provisioningu sb7, sb13 a sb4.
 > Kazdy problem ma popis, workaround, a navrh opravy.
-> Posledni aktualizace: 2026-04-12
+> Posledni aktualizace: 2026-04-14
+
+Operativni checklist pro novy image je ted vedeny zvlast v `17-smartbox-new-image-checklist.md`.
+Tento dokument zustava backlogem problemu a opakujicich se pasti, ne hlavnim step-by-step runbookem.
 
 ---
 
@@ -43,8 +46,9 @@
 
 **Kde:** `PATCH /api/v1/sb/devices/:sbId` — `alias` je unrecognized key
 **Co se stalo:** Sloupec `alias` existuje v DB ale neni v zod validacnim schematu
-**Workaround:** Alias ulozeny v `notes` poli ("Listany KD (alias: listany_kd)")
+**Workaround:** Historicky byl alias ukladan do `notes` pole (`"Listany KD (alias: listany_kd)"`)
 **Oprava:** Pridat `alias` do PATCH schema v `src/routes/admin.js`
+**Status (2026-04-13):** OPRAVENO. `sb-manager` ma samostatny alias endpoint/validaci a live metadata uz byla narovnana na `sb7 -> chlumzs`, `sb13 -> listanykd`. `notes` zustavaji jen lidsky popis lokality.
 
 ---
 

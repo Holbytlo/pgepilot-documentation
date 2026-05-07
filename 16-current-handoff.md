@@ -25,6 +25,7 @@ Important:
 - the history cutover and the SmartBox/auth follow-up were not the same deploy
 - service + workers are uniform again on `1727f60`
 - SB1, SB4, SB7, and SB13 now use separate SmartBox identity bundles; the old shared auth row is legacy residue only
+- SB13 is the Raspberry Pi 3 + 3.5" TFT variant in the current fleet; SB4 and SB7 remain M5Stack CoreMP135
 - SB1, SB4, SB7, and SB13 now locally pass `rpc-client /api/login` and `smartboxPoll` with `HTTP 200`
 - SB13 was migrated onto the canonical SmartBox identity model (`smartbox_id + collection_point_id + device_id + master_machine_id`) and now runs `energity-local-db`; legacy `energity-sensor-db` is disabled there
 - `pgepilot_service`, `worker1/2/3`, servicedesk, and auth were captured back into image tags and recreated/restarted from compose-compatible images on `2026-04-13`
@@ -117,6 +118,17 @@ Remaining follow-up:
 - the remaining SmartBox work is operational, not identity-model related:
   - `sb7` still has customer placeholder inverter config (`enabled:false`, placeholder Solarman host / logger serial)
   - `sb13` also still has placeholder inverter network config and `enabled:false`; identity is fixed, customer commissioning is not
+
+### 3. sb7 On-net Drift vs Legacy sb2 Tunnel
+
+As of `2026-04-13`, the field box expected to come up as `sb7` is not reaching VPS on canonical `sb7` ports `20060-20065`.
+
+- VPS currently sees a legacy reverse tunnel on `20010-20019` from WAN IP `78.80.114.104`
+- that session authenticates with the old `sb2` tunnel key fingerprint `SHA256:0jsVYrgRAhspKTgpiPlg0frGPS2Sgovty0gsStyTIqM`
+- legacy health on `127.0.0.1:20019` returns JSON identifying itself as `device=sb2`, `n=2`, `service=health3007`
+- canonical `sb7` listener ports `20060`, `20062`, and `20065` are closed on VPS
+
+Treat this as device-side runtime/tunnel drift, not an `sb-manager` alias or cloud-identity issue. Until device-side access is restored, remote manageability and visual identification of that physical box as `sb7` remain blocked.
 
 ### 3. Auth context
 
