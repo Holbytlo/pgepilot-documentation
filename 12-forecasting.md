@@ -49,7 +49,6 @@ Uses the [forecast.solar](https://forecast.solar) Professional API to predict so
 | `kder_vel` | Kder Veltrusy | 10.0 | basic | forecast_solar | v1_simple | Real plant; OM fallback when task 24 disabled |
 | `demo_kd` | Demo Kulturní dům | 18.0 | adaptive | manual (synth) | v2_factored | Synthetic demo profile |
 | `demo_rad` | Demo Radnice | 26.0 | adaptive | manual (synth) | v2_factored | Synthetic demo profile |
-| `demo_zs` | Demo Základní škola | 42.0 | adaptive | manual (synth) | v2_factored | Synthetic demo profile |
 
 Of the 5 rows, only **2 cover real plants** (VA, Kder Veltrusy); the other 3 are synthetic demo data for UI testing, written with `source='manual'`. Historical `source='forecast_solar'` rows exist but have not been updated since task 24 was disabled on 2026-04-04 — in practice these two real plants are served by task 26 (OpenMeteo physical model).
 
@@ -420,7 +419,7 @@ For production with multiple plants, Professional tier is recommended.
 
 ## Known Issues (as of 2026-04-21)
 
-- **Coverage**: PV forecast is enabled for only 2 real plants (`va`, `kder_vel`) out of 47 active CPs, plus 3 synthetic demo rows (`demo_kd`, `demo_rad`, `demo_zs`). Expanding coverage is Priority 1.5 in the roadmap.
+- **Coverage**: PV forecast is enabled for only 2 real plants (`va`, `kder_vel`) out of 47 active CPs, plus 2 synthetic demo rows (`demo_kd`, `demo_rad`). Expanding coverage is Priority 1.5 in the roadmap.
 - **OpenMeteo model systematically overshoots**: both real plants have converged to `correction_factor_om = 0.70` (the lower EMA clamp), implying the raw OM prediction is ~40 % high. Likely root causes: `eta_balance` too generous, shade horizon not modelled (`kder_vel` has `shade_enabled=0`), or inverter clipping not captured. Candidates for Phase 2 calibration.
 - **forecast.solar API key is hardcoded** in `pv_forecast.php` (should be in env var or config table).
 - **Tasks `24` (forecast.solar) and `25` (load forecast) have been disabled since 2026-04-04** -- their scripts still exist but no fresh data is being produced. `va` and `kder_vel` rows still have `forecast_source='forecast_solar'` in config, but in practice the OpenMeteo pipeline (task `26`) is what serves them.
